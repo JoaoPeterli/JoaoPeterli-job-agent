@@ -201,7 +201,7 @@ RSpec.describe JobSearch::Agent do
       let(:plan) { instance_double(JobSearch::Plan) }
       let(:memory_store) { instance_double(JobSearch::PersistentMemoryStore, save: 1) }
       let(:memory_retriever) { instance_double(JobSearch::MemoryRetriever, lessons_for: []) }
-      let(:event_logger) { instance_double(JobSearch::Observability::EventLogger, warn: nil) }
+      let(:event_logger) { instance_double(JobSearch::Observability::EventLogger, warn: nil, info: nil) }
 
       let(:agent) do
         described_class.new(

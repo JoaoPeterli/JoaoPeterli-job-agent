@@ -17,16 +17,24 @@ module JobSearch
 
     # llm_client: permite trocar o LLM (ex.: cliente roteirizado nos testes
     # de integração) mantendo todo o resto da montagem real.
-    def initialize(llm_client: nil)
+    #
+    # event_logger: destino dos logs estruturados (padrão: Rails.logger).
+    def initialize(llm_client: nil, event_logger: Observability::EventLogger.new)
       @llm_client = llm_client
+      @event_logger = event_logger
     end
 
+    # Cada agente recebe um Tracer próprio, compartilhado entre planner e
+    # executor, para que todos os spans do run fiquem no mesmo trace.
     def agent(objective:)
+      tracer = Observability::Tracer.new(event_logger: @event_logger)
+
       Agent.new(
         objective: objective,
-        planner: planner,
-        plan_executor: plan_executor,
+        planner: planner(tracer: tracer),
+        plan_executor: plan_executor(tracer: tracer),
         planning_retry_policy: planning_retry_policy,
+        tracer: tracer,
         memory_store: memory_store,
         memory_retriever: memory_retriever
       )
@@ -34,14 +42,15 @@ module JobSearch
 
     # Cada PlanExecutor tem o próprio budget, compartilhado apenas com o
     # seu Executor: execuções diferentes não somam tempo nem chamadas.
-    def plan_executor
+    def plan_executor(tracer: Observability::NullTracer.new)
       budget = execution_budget
 
       PlanExecutor.new(
         executor: executor(execution_budget: budget),
         execution_budget: budget,
         tool_catalog: tool_catalog,
-        tool_authorizer: tool_authorizer
+        tool_authorizer: tool_authorizer,
+        tracer: tracer
       )
     end
 
@@ -53,7 +62,8 @@ module JobSearch
 
     def memory_retriever
       MemoryRetriever.new(
-        store: memory_store
+        store: memory_store,
+        event_logger: @event_logger
       )
     end
 
@@ -93,13 +103,14 @@ module JobSearch
       )
     end
 
-    def planner
+    def planner(tracer: Observability::NullTracer.new)
       LlmPlanner.new(
         llm_client: llm_client,
         registry: registry,
         tool_catalog: planning_tool_catalog,
         tool_validator: tool_validator,
-        context_window: context_window
+        context_window: context_window,
+        tracer: tracer
       )
     end
 

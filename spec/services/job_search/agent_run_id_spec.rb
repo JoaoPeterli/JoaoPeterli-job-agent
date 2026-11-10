@@ -20,7 +20,7 @@ RSpec.describe JobSearch::Agent do
 
       allow(planning_retry_policy)
         .to receive(:call)
-        .and_yield(nil)
+        .and_yield(JobSearch::PlanningContext.new(objective: "Encontrar vagas Ruby"))
 
       allow(planner)
         .to receive(:plan)

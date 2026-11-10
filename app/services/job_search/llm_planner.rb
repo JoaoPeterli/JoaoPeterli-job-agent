@@ -24,9 +24,11 @@ module JobSearch
       context_window: ContextWindow.new(
         max_input_tokens: DEFAULT_MAX_INPUT_TOKENS
       ),
-      injection_detector: InjectionDetector.new
+      injection_detector: InjectionDetector.new,
+      tracer: Observability::NullTracer.new
     )
       @llm_client = llm_client
+      @tracer = tracer
       @injection_detector = injection_detector
       @context_window = context_window
       @registry = registry
@@ -38,9 +40,18 @@ module JobSearch
     def plan(context:)
       validate_objective!(context.objective)
 
-      response = @llm_client.complete(
-        prompt: build_prompt(context)
-      )
+      prompt = @context_window.build(prompt_sections(context))
+
+      response = @tracer.span(
+        "llm.plan",
+        prompt_tokens_estimate: prompt.token_count,
+        truncated_sections: prompt.truncated_sections.map(&:to_s),
+        dropped_sections: prompt.dropped_sections.map(&:to_s)
+      ) do |span|
+        @llm_client.complete(prompt: prompt.text).tap do |text|
+          span.set(:response_chars, text.to_s.length)
+        end
+      end
 
       data = parse_response(response)
 
@@ -106,10 +117,6 @@ module JobSearch
       end
 
       UntrustedText.wrap(lines.join("\n"), source: source)
-    end
-
-    def build_prompt(context)
-      @context_window.build(prompt_sections(context)).text
     end
 
     def prompt_sections(context)

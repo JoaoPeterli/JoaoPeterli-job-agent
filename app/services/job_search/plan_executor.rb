@@ -6,15 +6,25 @@ module JobSearch
       executor:,
       execution_budget:,
       tool_catalog:,
-      tool_authorizer: ToolAuthorizer.new(tool_catalog: tool_catalog)
+      tool_authorizer: ToolAuthorizer.new(tool_catalog: tool_catalog),
+      tracer: Observability::NullTracer.new
     )
       @executor = executor
       @execution_budget = execution_budget
       @tool_catalog = tool_catalog
       @tool_authorizer = tool_authorizer
+      @tracer = tracer
     end
 
     def execute(plan:, state:)
+      @tracer.span("plan.execute", steps: plan.steps.length) do
+        execute_plan(plan, state)
+      end
+    end
+
+    private
+
+    def execute_plan(plan, state)
       # Tempo e chamadas contam a partir do início da execução do plano,
       # não da construção do budget (o planejamento via LLM vem antes).
       @execution_budget.start!
@@ -50,9 +60,15 @@ module JobSearch
       raise
     end
 
-    private
-
     def execute_step(step, state:)
+      @tracer.span("step", step: step.name.to_s, tool: step.action.tool.to_s) do |span|
+        run_step(step, state: state)
+      ensure
+        span.set(:attempts, state.attempts_for(step.name).to_i)
+      end
+    end
+
+    def run_step(step, state:)
       state.start_step!(step.name)
 
       action = step.action
