@@ -13,6 +13,10 @@ module JobSearch
     # nomes, classes de erro), nunca prompt, objetivo ou dados de
     # ferramentas.
     #
+    # listeners: objetos com #call(span_hash), chamados a cada span
+    # terminado (ex.: RunMetrics). Uma falha no listener é registrada e
+    # ignorada: métrica nunca derruba um run.
+    #
     # Um Tracer pertence a um único run e não é thread-safe: o Container
     # cria um novo para cada agente.
     class Tracer
@@ -36,9 +40,11 @@ module JobSearch
       def initialize(
         event_logger: EventLogger.new,
         clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_millisecond) },
-        id_generator: -> { SecureRandom.hex(8) }
+        id_generator: -> { SecureRandom.hex(8) },
+        listeners: []
       )
         @event_logger = event_logger
+        @listeners = listeners
         @clock = clock
         @id_generator = id_generator
         @stack = []
@@ -103,7 +109,21 @@ module JobSearch
 
         level = status == "ok" ? :info : :warn
 
-        @event_logger.public_send(level, **payload, **span.attributes)
+        payload = payload.merge(span.attributes)
+        @event_logger.public_send(level, **payload)
+        notify(payload)
+      end
+
+      def notify(payload)
+        @listeners.each do |listener|
+          listener.call(payload)
+        rescue StandardError => error
+          @event_logger.warn(
+            event: "tracer.listener_failed",
+            listener: listener.class.name,
+            error_class: error.class.name
+          )
+        end
       end
     end
   end

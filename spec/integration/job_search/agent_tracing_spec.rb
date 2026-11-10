@@ -32,8 +32,8 @@ RSpec.describe "Agent tracing" do
     expect(spans.map { |span| span["trace_id"] }.uniq).to eq([ state.run_id ])
     expect(tree(spans)).to eq([
       [ "agent.run",
-        [ "planning.attempt", [ "llm.plan" ] ],
-        [ "planning.attempt", [ "llm.plan" ] ],
+        [ "planning.attempt", [ "llm.plan", [ "llm.call" ] ] ],
+        [ "planning.attempt", [ "llm.plan", [ "llm.call" ] ] ],
         [ "plan.execute", [ "step" ], [ "step" ], [ "step" ] ] ]
     ])
   end

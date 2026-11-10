@@ -3,8 +3,8 @@ module JobSearch
   #
   # Cada chamada consome a próxima resposta do roteiro:
   # - String       -> texto devolvido como resposta completa;
-  # - LlmResponse  -> passa pelo mesmo LlmResponseContract do cliente real
-  #                   (recusa, truncamento, etc.);
+  # - LlmResponse  -> devolvida como está (com usage, recusa, truncamento...)
+  #                   e passa pelo mesmo LlmResponseContract do cliente real;
   # - Exception    -> é lançada (simula falha de rede/provedor).
   #
   # Guarda todos os prompts recebidos. Se o roteiro acabar, falha alto:
@@ -20,7 +20,7 @@ module JobSearch
       @prompts = []
     end
 
-    def complete(prompt:)
+    def generate(prompt:)
       @prompts << prompt
 
       raise ScriptExhausted, "No scripted LLM response for call #{@prompts.size}" if @responses.empty?
@@ -29,9 +29,13 @@ module JobSearch
 
       case response
       when Exception then raise response
-      when LlmResponse then @response_contract.text!(response)
-      else response
+      when LlmResponse then response
+      else LlmResponse.new(text: response)
       end
+    end
+
+    def complete(prompt:)
+      @response_contract.text!(generate(prompt: prompt))
     end
 
     def calls

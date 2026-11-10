@@ -4,10 +4,16 @@ namespace :job_search do
     objective = args[:objective].to_s.strip
     abort 'Informe o objetivo: bin/rails "job_search:run[Encontrar vagas Ruby remotas]"' if objective.empty?
 
-    agent = JobSearch::Container.new.agent(objective: objective)
+    # Spans e o resumo "run.metrics" (tokens, custo, latência) vão para o
+    # stderr; o resultado do run continua no stdout.
+    logger = Logger.new($stderr, formatter: ->(_severity, _time, _progname, message) { "#{message}\n" })
+    event_logger = JobSearch::Observability::EventLogger.new(logger: logger)
+    agent = JobSearch::Container.new(event_logger: event_logger).agent(objective: objective)
 
     begin
       state = agent.run
+    rescue JobSearch::LlmBudgetExceeded => error
+      abort "Orçamento de LLM do run esgotado: #{error.message}"
     rescue JobSearch::PlanningError => error
       abort "Planejamento falhou: #{error.message}"
     rescue JobSearch::ToolAuthorizationError => error

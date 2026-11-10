@@ -32,7 +32,8 @@ RSpec.describe JobSearch::OpenAiLlmClient do
       status: status && status.to_sym,
       output: output,
       incomplete_details: incomplete_reason && double(reason: incomplete_reason),
-      usage: usage
+      usage: usage,
+      model: "test-model-2026-01-01"
     )
   end
 
@@ -105,7 +106,10 @@ RSpec.describe JobSearch::OpenAiLlmClient do
 
   describe "#generate" do
     it "normalizes the provider response including token usage" do
-      usage = double(input_tokens: 120, output_tokens: 30, total_tokens: 150)
+      usage = double(
+        input_tokens: 120, output_tokens: 30, total_tokens: 150,
+        input_tokens_details: double(cached_tokens: 100)
+      )
       allow(responses_api).to receive(:create).and_return(fake_response(usage: usage))
 
       response = build_client.generate(prompt: "Create a plan")
@@ -114,9 +118,19 @@ RSpec.describe JobSearch::OpenAiLlmClient do
         JobSearch::LlmResponse.new(
           text: '{"steps":[]}',
           status: :completed,
-          usage: JobSearch::LlmUsage.new(input_tokens: 120, output_tokens: 30, total_tokens: 150)
+          model: "test-model-2026-01-01",
+          usage: JobSearch::LlmUsage.new(
+            input_tokens: 120, output_tokens: 30, total_tokens: 150, cached_input_tokens: 100
+          )
         )
       )
+    end
+
+    it "treats missing cache details as zero cached tokens" do
+      usage = double(input_tokens: 10, output_tokens: 5, total_tokens: 15, input_tokens_details: nil)
+      allow(responses_api).to receive(:create).and_return(fake_response(usage: usage))
+
+      expect(build_client.generate(prompt: "Create a plan").usage.cached_input_tokens).to eq(0)
     end
   end
 

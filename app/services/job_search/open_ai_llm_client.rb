@@ -75,7 +75,8 @@ module JobSearch
         status: raw.status&.to_sym,
         refusal: refusal_from(raw),
         incomplete_reason: raw.incomplete_details&.reason&.to_sym,
-        usage: usage_from(raw.usage)
+        usage: usage_from(raw.usage),
+        model: raw.model&.to_s
       )
     end
 
@@ -93,7 +94,8 @@ module JobSearch
       LlmUsage.new(
         input_tokens: usage.input_tokens,
         output_tokens: usage.output_tokens,
-        total_tokens: usage.total_tokens
+        total_tokens: usage.total_tokens,
+        cached_input_tokens: usage.input_tokens_details&.cached_tokens || 0
       )
     end
   end

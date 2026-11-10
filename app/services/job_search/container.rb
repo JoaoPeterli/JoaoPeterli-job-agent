@@ -15,6 +15,15 @@ module JobSearch
       search_jobs: 5
     }.freeze
 
+    LLM_MODEL = "gpt-5.6".freeze
+    LLM_PRICING_PATH = Rails.root.join("config/llm_pricing.yml")
+
+    # Orçamento de LLM por run. 3 tentativas x (8k input + 2k output) já
+    # cabem em 30k; o limite existe para que um laço futuro (ex.: agentes
+    # delegando entre si) não gaste sem teto.
+    MAX_LLM_TOKENS_PER_RUN = 30_000
+    MAX_LLM_COST_USD_PER_RUN = 0.50
+
     # llm_client: permite trocar o LLM (ex.: cliente roteirizado nos testes
     # de integração) mantendo todo o resto da montagem real.
     #
@@ -26,12 +35,17 @@ module JobSearch
 
     # Cada agente recebe um Tracer próprio, compartilhado entre planner e
     # executor, para que todos os spans do run fiquem no mesmo trace.
+    # O RunMetrics escuta esse Tracer e resume o run em "run.metrics";
+    # o LLM é medido por um MeteredLlmClient com orçamento próprio do run.
     def agent(objective:)
-      tracer = Observability::Tracer.new(event_logger: @event_logger)
+      tracer = Observability::Tracer.new(
+        event_logger: @event_logger,
+        listeners: [ Observability::RunMetrics.new(event_logger: @event_logger) ]
+      )
 
       Agent.new(
         objective: objective,
-        planner: planner(tracer: tracer),
+        planner: planner(tracer: tracer, client: metered_llm_client(tracer: tracer)),
         plan_executor: plan_executor(tracer: tracer),
         planning_retry_policy: planning_retry_policy,
         tracer: tracer,
@@ -103,9 +117,9 @@ module JobSearch
       )
     end
 
-    def planner(tracer: Observability::NullTracer.new)
+    def planner(tracer: Observability::NullTracer.new, client: llm_client)
       LlmPlanner.new(
-        llm_client: llm_client,
+        llm_client: client,
         registry: registry,
         tool_catalog: planning_tool_catalog,
         tool_validator: tool_validator,
@@ -126,10 +140,27 @@ module JobSearch
       )
     end
 
+    def metered_llm_client(tracer:)
+      MeteredLlmClient.new(
+        client: llm_client,
+        tracer: tracer,
+        pricing_table: pricing_table,
+        budget: LlmBudget.new(
+          max_total_tokens: MAX_LLM_TOKENS_PER_RUN,
+          max_cost_usd: MAX_LLM_COST_USD_PER_RUN
+        ),
+        model: LLM_MODEL
+      )
+    end
+
+    def pricing_table
+      @pricing_table ||= LlmPricingTable.load(LLM_PRICING_PATH)
+    end
+
     def llm_client
       @llm_client ||= OpenAiLlmClient.new(
         client: openai_client,
-        model: "gpt-5.6",
+        model: LLM_MODEL,
         output_schema: plan_output_schema,
         max_output_tokens: 2_000
       )

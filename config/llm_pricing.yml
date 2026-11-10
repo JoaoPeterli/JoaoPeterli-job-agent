@@ -1,0 +1,14 @@
+# Preço dos modelos em USD por 1 milhão de tokens, usado nas métricas de
+# custo (JobSearch::LlmPricingTable).
+#
+# Preencha com os valores da página oficial de preços do provedor
+# (https://openai.com/api/pricing). Modelo sem input_per_million ou
+# output_per_million fica com custo "desconhecido" (cost_usd: null) —
+# o orçamento por tokens continua valendo.
+#
+# A chave casa com o nome exato ou como prefixo de um snapshot datado
+# (ex.: "gpt-5.6" vale para "gpt-5.6-2026-08-01").
+gpt-5.6:
+  input_per_million:
+  cached_input_per_million:
+  output_per_million:

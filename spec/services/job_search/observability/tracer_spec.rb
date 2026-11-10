@@ -89,4 +89,23 @@ RSpec.describe JobSearch::Observability::Tracer do
 
     expect(events.spans.first["api_key"]).to eq("[FILTERED]")
   end
+
+  describe "listeners" do
+    it "receives every finished span with its attributes" do
+      received = []
+      tracer = described_class.new(event_logger: events.event_logger, listeners: [ ->(span) { received << span } ])
+
+      tracer.span("root", trace_id: "t1") { |span| span.set(:size, 3) }
+
+      expect(received.size).to eq(1)
+      expect(received.first).to include(name: "root", trace_id: "t1", parent_span_id: nil, status: "ok", size: 3)
+    end
+
+    it "logs and ignores a failing listener" do
+      tracer = described_class.new(event_logger: events.event_logger, listeners: [ ->(_span) { raise "boom" } ])
+
+      expect(tracer.span("root") { :done }).to eq(:done)
+      expect(events.all.last).to include("event" => "tracer.listener_failed", "error_class" => "RuntimeError")
+    end
+  end
 end
