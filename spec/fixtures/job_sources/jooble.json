@@ -1,29 +1,29 @@
 {
- "totalCount": 2,
+ "totalCount": 4836,
  "jobs": [
   {
-   "title": "Desenvolvedor Ruby on Rails Pleno",
-   "location": "Remoto",
-   "snippet": "...",
+   "title": "Staff Ruby Engineer",
+   "location": "Remote",
+   "snippet": "trimmed",
    "salary": "",
-   "source": "gupy.io",
-   "type": "Tempo integral",
-   "link": "https://jooble.org/desc/123",
-   "company": "Empresa Exemplo",
-   "updated": "2026-11-08T10:00:00.0000000",
-   "id": 123
+   "source": "auraone.ai",
+   "type": "",
+   "link": "https://jooble.org/desc/-6345321464840682000?ckey=Ruby&rgn=55157&pos=1&groupId=46530&elckey=6676823413543328804&p=1&aq=-7834065795798061003&cid=23755&jobAge=822&brelb=100&bscr=63.38898&scr=63.38898",
+   "company": "AuraOne Human Data",
+   "updated": "2026-10-07T10:07:57.6726405+00:00",
+   "id": -6345321464840682000
   },
   {
-   "title": "Backend Developer",
-   "location": "São Paulo, SP",
-   "snippet": "...",
-   "salary": "R$ 10.000",
-   "source": "",
-   "type": "",
-   "link": "https://jooble.org/desc/456",
-   "company": "Outra",
-   "updated": "2026-11-01T09:00:00.0000000",
-   "id": 456
+   "title": "Ruby Engineer",
+   "location": "San Francisco, CA",
+   "snippet": "trimmed",
+   "salary": "$55 per hour",
+   "source": "aitrainer.jobs",
+   "type": "Temporary",
+   "link": "https://jooble.org/desc/-3697052031501313402?ckey=Ruby&rgn=55157&pos=2&groupId=46530&elckey=6676823413543328804&p=1&aq=-7834065795798061003&cid=23755&jobAge=856&brelb=100&bscr=56.960144&scr=56.960144",
+   "company": "SuperAnnotate",
+   "updated": "2026-10-06T00:00:00.0000000",
+   "id": -3697052031501313402
   }
  ]
 }

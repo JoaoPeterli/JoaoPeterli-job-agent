@@ -45,18 +45,46 @@ RSpec.describe "Keyword sources (Jobicy, Himalayas, Jooble)" do
   describe JobSearch::JobSources::Jooble do
     let(:url) { "https://jooble.org/api/s3cr3t" }
 
-    it "posts the search and keeps the key out of the cache key" do
+    def search(fetcher, remote:)
+      described_class.new(fetcher: fetcher, api_key: "s3cr3t", location: "Brazil").search(technology: "Ruby", remote: remote)
+    end
+
+    it "posts the search (remote uses the 'Remote' location) and keeps the key out of the cache key" do
       fetcher = JobSearch::FakeFetcher.new(url => fixture.("jooble.json"))
 
-      first, second = described_class.new(fetcher: fetcher, api_key: "s3cr3t", location: "Brasil")
-                                     .search(technology: "Ruby", remote: true)
+      first, second = search(fetcher, remote: true)
 
       request = fetcher.requests.last
-      expect(request[:body]).to eq(keywords: "Ruby remoto", location: "Brasil")
+      expect(request[:body]).to eq(keywords: "Ruby", location: "Remote")
       expect(request[:cache_key]).not_to include("s3cr3t")
-      expect(first).to have_attributes(title: "Desenvolvedor Ruby on Rails Pleno", company: "Empresa Exemplo",
-                                       source: "gupy.io via Jooble", remote: true, url: "https://jooble.org/desc/123")
-      expect(second).to have_attributes(source: "Jooble", remote: false, location: "São Paulo, SP")
+      expect(request[:ttl]).to eq(6.hours)
+      expect(first).to have_attributes(title: "Staff Ruby Engineer", company: "AuraOne Human Data",
+                                       source: "auraone.ai via Jooble", location: "Remote", remote: true,
+                                       url: start_with("https://jooble.org/desc/"),
+                                       published_at: Time.zone.parse("2026-10-07T10:07:57.6726405+00:00"))
+      expect(second).to have_attributes(location: "San Francisco, CA", remote: false, tags: [ "Temporary" ])
+    end
+
+    it "uses the configured location (in English) for on-site searches" do
+      fetcher = JobSearch::FakeFetcher.new(url => fixture.("jooble.json"))
+
+      search(fetcher, remote: false)
+
+      expect(fetcher.requests.last[:body]).to eq(keywords: "Ruby", location: "Brazil")
+    end
+
+    it "drops paid studies and panels that are not jobs, and trusts only the location for remote" do
+      jobs = [
+        { "title" => "Paid Focus Group Participant - Remote Research - Ruby", "location" => "Ruby, NY", "link" => "https://jooble.org/desc/1" },
+        { "title" => "Paid Research Panelist - Remote Participation - Ruby", "location" => "Ruby, AK", "link" => "https://jooble.org/desc/2" },
+        { "title" => "Ruby Developer (Remote friendly)", "location" => "Austin, TX", "link" => "https://jooble.org/desc/3" }
+      ]
+      fetcher = JobSearch::FakeFetcher.new(url => { totalCount: 3, jobs: jobs }.to_json)
+
+      result = search(fetcher, remote: true)
+
+      expect(result.map(&:title)).to eq([ "Ruby Developer (Remote friendly)" ])
+      expect(result.first.remote).to be(false)
     end
 
     it "requires the key" do
