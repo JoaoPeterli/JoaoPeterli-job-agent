@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <title><%= content_for(:title) || "job_agent" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= turbo_refreshes_with method: :morph, scroll: :preserve %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body>
+    <header class="topbar">
+      <%= link_to root_path, class: "brand" do %>
+        <span class="brand__mark" aria-hidden="true">◆</span> job_agent
+      <% end %>
+      <span class="topbar__hint">agente de busca de vagas</span>
+    </header>
+
+    <main class="page">
+      <% if notice.present? %><p class="flash flash--notice" role="status"><%= notice %></p><% end %>
+      <% if alert.present? %><p class="flash flash--alert" role="alert"><%= alert %></p><% end %>
+      <%= yield %>
+    </main>
+  </body>
+</html>

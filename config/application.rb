@@ -21,12 +21,11 @@ module JobAgent
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
+    # Horários exibidos na interface. O banco continua em UTC.
+    config.time_zone = "America/Sao_Paulo"
     # config.eager_load_paths << Rails.root.join("extras")
 
-    # Only loads a smaller set of middleware suitable for API only apps.
-    # Middleware like session, flash, cookies can be added back manually.
-    # Skip views, helpers and assets when generating a new resource.
-    config.api_only = true
+    # Aplicação web (Hotwire) + jobs. Era api_only até o front ser criado.
+    config.api_only = false
   end
 end

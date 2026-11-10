@@ -129,8 +129,11 @@ module JobSearch
       else
         team = run.mode == "pipeline" ? container.pipeline : container.supervisor
         result = team.run(objective: run.objective, run_id: run.id)
+        # Lista (não hash): o jsonb do PostgreSQL reordena chaves de objeto,
+        # e a ordem das delegações importa.
         { status: result.status.to_s,
-          result: { output: result.output&.value, agent_run_ids: result.agent_run_ids } }
+          result: { output: result.output&.value,
+                    agents: result.agent_run_ids.map { |delegation, run_id| { delegation: delegation, run_id: run_id } } } }
       end
     end
 

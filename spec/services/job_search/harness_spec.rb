@@ -78,7 +78,7 @@ RSpec.describe JobSearch::Harness do
       finished = harness(client: client).execute(run.id)
 
       expect(finished.status).to eq("completed")
-      expect(finished.result["agent_run_ids"].keys).to eq([ "search" ])
+      expect(finished.result["agents"].map { |agent| agent["delegation"] }).to eq([ "search" ])
       expect(finished.metrics).to include("llm_calls" => 2)
     end
 

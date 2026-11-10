@@ -1,0 +1,61 @@
+<% content_for :title, "job_agent · runs" %>
+
+<section class="card">
+  <h1 class="card__title">Nova busca</h1>
+
+  <%= form_with scope: :run, url: runs_path, class: "run-form", data: { turbo: false } do |f| %>
+    <%= f.hidden_field :idempotency_key, value: @form[:idempotency_key] %>
+
+    <label class="field">
+      <span class="field__label">Objetivo</span>
+      <%= f.text_area :objective, value: @form[:objective], rows: 3, maxlength: RunsController::MAX_OBJECTIVE_LENGTH,
+                      placeholder: "Ex.: Vagas remotas de Ruby e Rails que combinem com meu perfil", required: true %>
+    </label>
+
+    <fieldset class="modes">
+      <legend class="field__label">Modo</legend>
+      <% RunsHelper::MODE_LABELS.each do |mode, label| %>
+        <label class="mode">
+          <%= f.radio_button :mode, mode, checked: @form[:mode] == mode %>
+          <span class="mode__body">
+            <span class="mode__name"><%= label %></span>
+            <span class="mode__desc"><%= RunsHelper::MODE_DESCRIPTIONS[mode] %></span>
+          </span>
+        </label>
+      <% end %>
+    </fieldset>
+
+    <div class="run-form__actions">
+      <%= f.submit "Buscar vagas", class: "button button--primary", data: { disable_with: "Enviando…" } %>
+      <span class="muted">Cada busca chama a OpenAI e gasta tokens.</span>
+    </div>
+  <% end %>
+</section>
+
+<section class="card" data-controller="refresh" data-refresh-active-value="<%= @runs.any? { |run| run_active?(run) } %>">
+  <h2 class="card__title">Runs recentes</h2>
+
+  <% if @runs.empty? %>
+    <p class="muted">Nenhum run ainda.</p>
+  <% else %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Objetivo</th><th>Modo</th><th>Status</th><th class="num">Duração</th><th class="num">LLM</th><th>Quando</th></tr>
+        </thead>
+        <tbody>
+          <% @runs.each do |run| %>
+            <tr>
+              <td class="truncate"><%= link_to run.objective, run_path(run) %></td>
+              <td><%= mode_label(run.mode) %></td>
+              <td><%= status_badge(run.status) %></td>
+              <td class="num"><%= format_duration(run.metrics["duration_ms"]) %></td>
+              <td class="num"><%= format_count(run.metrics["llm_calls"]) %></td>
+              <td class="muted nowrap"><%= l(run.created_at, format: "%d/%m %H:%M") %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</section>

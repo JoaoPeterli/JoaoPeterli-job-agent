@@ -1,0 +1,108 @@
+<% content_for :title, "job_agent · #{@run.objective.truncate(40)}" %>
+
+<div class="stack" data-controller="refresh" data-refresh-active-value="<%= run_active?(@run) %>">
+  <p><%= link_to "← Runs", runs_path, class: "muted" %></p>
+
+  <section class="card">
+    <div class="run-head">
+      <div>
+        <p class="eyebrow"><%= mode_label(@run.mode) %> · tentativa <%= @run.attempts %></p>
+        <h1 class="run-head__objective"><%= @run.objective %></h1>
+      </div>
+      <div class="run-head__side">
+        <%= status_badge(@run.status) %>
+        <% if run_active?(@run) %>
+          <%= button_to "Cancelar", cancel_run_path(@run), class: "button button--ghost",
+                        disabled: @run.cancel_requested?, form: { data: { turbo_confirm: "Cancelar este run?" } } %>
+        <% end %>
+      </div>
+    </div>
+
+    <% if run_active?(@run) %>
+      <p class="progress" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        <%= @run.status == "queued" ? "Aguardando um worker…" : "Trabalhando… esta página atualiza sozinha." %>
+        <% if @run.cancel_requested? %> Cancelamento pedido.<% end %>
+      </p>
+    <% end %>
+
+    <% if @run.error_class.present? %>
+      <p class="flash flash--alert">Erro: <code><%= @run.error_class %></code></p>
+    <% end %>
+
+    <dl class="stats">
+      <div><dt>Duração</dt><dd><%= format_duration(@run.metrics["duration_ms"]) %></dd></div>
+      <div><dt>Chamadas ao LLM</dt><dd><%= format_count(@run.metrics["llm_calls"]) %></dd></div>
+      <div><dt>Tokens</dt><dd><%= format_count(@run.metrics["total_tokens"]) %></dd></div>
+      <div><dt>Custo</dt><dd><%= @run.metrics.key?("cost_usd") ? format_cost(@run.metrics["cost_usd"]) : "—" %></dd></div>
+      <div><dt>Ferramentas</dt><dd><%= format_count(@run.metrics["tool_calls"]) %></dd></div>
+    </dl>
+  </section>
+
+  <section class="card">
+    <h2 class="card__title">Vagas <span class="muted">(<%= @jobs.size %>)</span></h2>
+
+    <% if @jobs.empty? %>
+      <p class="muted"><%= @run.finished? ? "Nenhuma vaga neste run." : "As vagas aparecem aqui quando o run terminar." %></p>
+    <% else %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Vaga</th><th>Empresa</th><th>Remota</th><th>Aderência</th></tr></thead>
+          <tbody>
+            <% @jobs.each do |job| %>
+              <tr>
+                <td><%= job["title"] %></td>
+                <td><%= job["company"] %></td>
+                <td><%= job["remote"] ? "Sim" : "Não" %></td>
+                <td>
+                  <% if job.key?("score") %>
+                    <span class="score"><span class="score__bar" style="<%= score_width(job["score"]) %>"></span></span>
+                    <span class="score__value"><%= job["score"] %></span>
+                  <% else %>
+                    <span class="muted">—</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </section>
+
+  <% if @run.result["agents"].present? %>
+    <section class="card">
+      <h2 class="card__title">Agentes do time</h2>
+      <ol class="agents">
+        <% @run.result["agents"].each do |agent| %>
+          <li><strong><%= agent["delegation"] %></strong> <code class="muted"><%= agent["run_id"] %></code></li>
+        <% end %>
+      </ol>
+    </section>
+  <% end %>
+
+  <section class="card">
+    <h2 class="card__title">
+      Auditoria
+      <% if @audit_events.any? %>
+        <span class="badge <%= @audit_check.valid? ? 'badge--completed' : 'badge--failed' %>">
+          <%= @audit_check.valid? ? "cadeia íntegra" : "cadeia violada no evento #{@audit_check.broken_at_seq}" %>
+        </span>
+      <% end %>
+    </h2>
+
+    <% if @audit_events.empty? %>
+      <p class="muted">Sem eventos ainda.</p>
+    <% else %>
+      <ol class="timeline">
+        <% @audit_events.each do |event| %>
+          <li class="timeline__item timeline__item--<%= event.outcome %>">
+            <span class="timeline__event"><%= event.event %></span>
+            <span class="timeline__outcome"><%= event.outcome %></span>
+            <span class="muted"><%= l(event.created_at, format: "%H:%M:%S") %></span>
+          </li>
+        <% end %>
+      </ol>
+    <% end %>
+  </section>
+</div>

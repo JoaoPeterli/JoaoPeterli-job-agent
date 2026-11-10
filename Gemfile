@@ -49,3 +49,8 @@ group :development, :test do
 
   gem "rspec-rails"
 end
+
+gem "propshaft", "~> 1.3"
+gem "importmap-rails", "~> 2.2"
+gem "turbo-rails", "~> 2.0"
+gem "stimulus-rails", "~> 1.3"
