@@ -40,11 +40,21 @@ module JobSearch
       required_inputs: %i[jobs]
     )
 
+    # Executa uma candidatura já aprovada por um humano (ApplicationExecutor).
+    # Não planeja: recebe um plano de um passo. É o único papel com a
+    # apply_job, e o ToolAuthorizer ainda exige a aprovação da ação exata.
+    APPLIER = AgentProfile.new(
+      name: "applier",
+      role: "You submit job applications that a human already approved.",
+      allowed_tools: %i[apply_job],
+      max_calls_per_tool: { apply_job: 1 }
+    )
+
     # Especialistas que um supervisor pode chamar (o GENERALIST não entra:
     # ele já faz tudo sozinho e anularia o menor privilégio do time).
     TEAM = [ RESEARCHER, ANALYST ].freeze
 
-    ALL = [ GENERALIST, RESEARCHER, ANALYST ].to_h { |profile| [ profile.name, profile ] }.freeze
+    ALL = [ GENERALIST, RESEARCHER, ANALYST, APPLIER ].to_h { |profile| [ profile.name, profile ] }.freeze
 
     def self.fetch(name)
       ALL.fetch(name.to_s) { raise KeyError, "Unknown agent profile: #{name}" }

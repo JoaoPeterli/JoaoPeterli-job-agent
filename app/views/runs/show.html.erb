@@ -65,6 +65,16 @@
     <%= render "shared/kpi", label: "Ferramentas", value: format_count(@run.metrics["tool_calls"]), icon_name: "wrench" %>
   </div>
 
+  <% if @applications.any? %>
+    <section class="card" id="candidaturas">
+      <div class="card__header">
+        <h2 class="card__title">Candidaturas propostas pelo agente <span class="count"><%= @applications.size %></span></h2>
+        <p class="card__description">Humano no laço: nada é enviado sem a sua aprovação. Revise e edite a mensagem antes de aprovar.</p>
+      </div>
+      <div class="applications"><%= render partial: "job_applications/application", collection: @applications %></div>
+    </section>
+  <% end %>
+
   <% if @run.result["iterations"].present? %>
     <section class="card">
       <div class="card__header">

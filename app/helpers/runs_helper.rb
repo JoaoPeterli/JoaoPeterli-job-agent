@@ -130,6 +130,19 @@ module RunsHelper
     "#{((1 - distance.to_f) * 100).round.clamp(0, 100)}%"
   end
 
+  APPLICATION_STATUSES = {
+    "proposed" => [ "Esperando você", "warning" ],
+    "approved" => [ "Aprovada, registrando…", "info" ],
+    "applied" => [ "Registrada", "success" ],
+    "rejected" => [ "Rejeitada", "neutral" ],
+    "failed" => [ "Falhou", "danger" ]
+  }.freeze
+
+  def application_status_badge(status)
+    label, tone = APPLICATION_STATUSES.fetch(status, [ status, "neutral" ])
+    tag.span(label, class: "badge badge--#{tone}")
+  end
+
   def score_width(score)
     "width: #{score.to_i.clamp(0, 100)}%"
   end

@@ -23,8 +23,12 @@ RSpec.describe "Security: defense in depth with a compromised LLM" do
     expect { agent.run }.to raise_error(JobSearch::PlanningError)
 
     expect(llm_client.calls).to eq(3)
-    expect(llm_client.prompts.last).to include("Unknown tool: apply_job")
+    # apply_job existe (humano no laço), mas só no papel APPLIER: o planner
+    # do agente de busca nem a recebe, e o plano que a usa é rejeitado.
+    expect(llm_client.prompts.first).not_to include("apply_job")
+    expect(llm_client.prompts.last).to include("Tool not allowed: apply_job")
     expect(audit_summary(audit_trail, last_run_id).map(&:first)).not_to include("tool.authorization")
+    expect(JobApplication.count).to eq(0)
   end
 
   it "keeps a registered tool out of reach when it is not in the allowlist" do

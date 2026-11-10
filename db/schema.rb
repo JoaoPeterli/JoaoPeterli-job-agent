@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_140000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -71,6 +71,31 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_140000) do
     t.string "location"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "job_applications", force: :cascade do |t|
+    t.uuid "run_id", null: false
+    t.string "job_key", null: false
+    t.string "title", null: false
+    t.string "company"
+    t.string "location"
+    t.string "source"
+    t.string "url"
+    t.integer "score"
+    t.string "score_reason"
+    t.text "message", null: false
+    t.string "status", default: "proposed", null: false
+    t.string "approval_fingerprint"
+    t.string "decided_by"
+    t.datetime "decided_at"
+    t.datetime "applied_at"
+    t.string "external_id"
+    t.string "error_class"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["job_key"], name: "index_job_applications_on_job_key", unique: true
+    t.index ["run_id"], name: "index_job_applications_on_run_id"
+    t.index ["status", "created_at"], name: "index_job_applications_on_status_and_created_at"
   end
 
   create_table "job_feedbacks", force: :cascade do |t|

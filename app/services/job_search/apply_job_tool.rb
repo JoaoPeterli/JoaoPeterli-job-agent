@@ -14,7 +14,9 @@ module JobSearch
     #   que acorde depois de outro worker ter assumido a operação.
     #
     # idempotency_key explícito continua aceito para chamadas diretas.
-    def call(job_id:, candidate_id:, idempotency_key: nil, lease: nil)
+    # message: texto da candidatura aprovado pelo humano (faz parte da ação
+    # aprovada: está no fingerprint).
+    def call(job_id:, candidate_id:, message: nil, idempotency_key: nil, lease: nil)
       key = lease ? lease.key : idempotency_key
 
       raise ArgumentError, "idempotency_key is required" if key.to_s.strip.empty?
@@ -26,6 +28,7 @@ module JobSearch
       }
 
       request[:fencing_token] = lease.fencing_token if lease
+      request[:message] = message if message
 
       @client.create_application(**request)
     end

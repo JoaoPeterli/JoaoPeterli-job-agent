@@ -47,6 +47,10 @@
           <%= link_to job_postings_path, class: "nav-item", aria: { current: current_page?(job_postings_path) || current_page?(similar_job_postings_path) ? "page" : nil } do %>
             <%= icon("search") %><span>Histórico de vagas</span>
           <% end %>
+          <%= link_to job_applications_path, class: "nav-item", aria: { current: current_page?(job_applications_path) ? "page" : nil } do %>
+            <%= icon("send") %><span>Candidaturas</span>
+            <% if (pending = JobApplication.pending.count).positive? %><span class="nav-item__badge" aria-label="<%= pending %> esperando aprovação"><%= pending %></span><% end %>
+          <% end %>
           <%= link_to edit_profile_path, class: "nav-item", aria: { current: current_page?(edit_profile_path) ? "page" : nil } do %>
             <%= icon("user") %><span>Meu perfil</span>
           <% end %>

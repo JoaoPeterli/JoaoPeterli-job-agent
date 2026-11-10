@@ -28,6 +28,8 @@ Rails.application.configure do
   config.x.llm_job_evaluation = false
   config.x.rag_enabled = false
   config.x.react_enabled = false
+  config.x.application_proposals = false
+  config.x.llm_application_drafts = false # mesmo com OPENAI_API_KEY no shell
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable

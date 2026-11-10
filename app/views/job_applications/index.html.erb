@@ -1,0 +1,26 @@
+<% content_for :title, "Candidaturas" %>
+
+<div class="page" data-controller="refresh" data-refresh-active-value="<%= @applications.any? { |a| a.status == 'approved' } %>">
+  <%= render "shared/page_header", title: "Candidaturas",
+             description: "O agente propõe candidaturas para as melhores vagas de cada busca. Nada é enviado sem a sua aprovação: você revisa, edita a mensagem e aprova (ou rejeita)." %>
+
+  <section class="card">
+    <div class="card__header card__header--split">
+      <p class="card__description">
+        <%= @counts["proposed"].to_i %> esperando você · <%= @counts["applied"].to_i %> registradas · <%= @counts["rejected"].to_i %> rejeitadas
+      </p>
+      <nav class="tabs" aria-label="Filtrar candidaturas">
+        <% { nil => "Todas", "pending" => "Esperando você", "done" => "Aprovadas", "closed" => "Rejeitadas/falhas" }.each do |filter, label| %>
+          <%= link_to label, job_applications_path(status: filter), class: "tabs__item", aria: { current: @filter == filter ? "page" : nil } %>
+        <% end %>
+      </nav>
+    </div>
+
+    <% if @applications.empty? %>
+      <%= render "shared/empty_state", icon_name: "send", title: "Nenhuma candidatura aqui",
+                 message: "Quando um run termina, o agente propõe as vagas com nota #{JobSearch::ApplicationProposer::MIN_SCORE}+ que combinam com você." %>
+    <% else %>
+      <div class="applications"><%= render partial: "application", collection: @applications %></div>
+    <% end %>
+  </section>
+</div>

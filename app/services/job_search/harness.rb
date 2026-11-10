@@ -142,9 +142,21 @@ module JobSearch
       container = @container_factory.call(event_logger: collector.event_logger, checkpoint: checkpoint)
 
       outcome = run_mode(container, run)
-      finish(run, outcome[:status], result: outcome[:result], metrics: metrics(collector))
+      finish(run, outcome[:status], result: outcome[:result], metrics: metrics(collector)).tap do
+        propose_applications(run) if outcome[:status] == "completed"
+      end
     rescue StandardError => error
       handle_failure(run, root_cause(error), metrics(collector))
+    end
+
+    # Humano no laço: o agente propõe candidaturas para as melhores vagas;
+    # nada é enviado sem aprovação. Falhar aqui nunca muda o run.
+    def propose_applications(run)
+      return unless Rails.configuration.x.application_proposals
+
+      ProposeApplicationsJob.perform_later(run.id)
+    rescue StandardError => error
+      @log_to.warn("[harness] proposals for #{run.id} not scheduled: #{error.class}")
     end
 
     def run_mode(container, run)

@@ -45,6 +45,12 @@ module JobAgent
     # iterações) quando veio pouca coisa ou coisa fraca.
     config.x.react_enabled = ENV.fetch("REACT_ENABLED", "true") == "true"
 
+    # Humano no laço: ao fim de um run, o agente propõe candidaturas para as
+    # melhores vagas; só são executadas depois da aprovação do usuário.
+    config.x.application_proposals = ENV.fetch("APPLICATION_PROPOSALS", "true") == "true"
+    # Rascunho das mensagens pelo LLM (com "false", usa um modelo de texto).
+    config.x.llm_application_drafts = ENV.fetch("LLM_APPLICATION_DRAFTS", "true") == "true"
+
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Aplicação web (Hotwire) + jobs. Era api_only até o front ser criado.

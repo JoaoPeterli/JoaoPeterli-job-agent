@@ -124,10 +124,13 @@ module JobSearch
 
     # Cada PlanExecutor tem o próprio budget, compartilhado apenas com o
     # seu Executor: execuções diferentes não somam tempo nem chamadas.
+    # approval_gate: quem aprova ações com efeito colateral (apply_job).
+    # Padrão: nega tudo; o ApplicationExecutor passa a aprovação humana.
     def plan_executor(
       tracer: Observability::NullTracer.new,
       audit_trail: NullAuditTrail.new,
-      profile: AgentProfiles::GENERALIST
+      profile: AgentProfiles::GENERALIST,
+      approval_gate: DenyAllApprovalGate.new
     )
       budget = execution_budget
 
@@ -135,8 +138,24 @@ module JobSearch
         executor: executor(execution_budget: budget),
         execution_budget: budget,
         tool_catalog: tool_catalog,
-        tool_authorizer: tool_authorizer(audit_trail: audit_trail, profile: profile),
+        tool_authorizer: tool_authorizer(audit_trail: audit_trail, profile: profile, approval_gate: approval_gate),
         tracer: tracer
+      )
+    end
+
+    # Rascunho das mensagens de candidatura (ApplicationProposer). Sem LLM
+    # real (testes, roteiros, sem chave), o proponente usa um modelo de texto.
+    def application_draft_llm_client
+      return unless Rails.configuration.x.llm_application_drafts
+      return if @llm_client || ENV["OPENAI_API_KEY"].blank?
+
+      MeteredLlmClient.new(
+        client: OpenAiLlmClient.new(client: openai_client, model: LLM_MODEL, output_schema: ApplicationProposer::SCHEMA,
+                                    schema_name: "job_search_application_drafts", max_output_tokens: 1_500),
+        tracer: Observability::NullTracer.new,
+        pricing_table: pricing_table,
+        budget: LlmBudget.new(max_total_tokens: 6_000, max_cost_usd: MAX_EVALUATION_COST_USD),
+        model: LLM_MODEL
       )
     end
 
@@ -167,11 +186,12 @@ module JobSearch
       )
     end
 
-    def tool_authorizer(audit_trail:, profile:)
+    def tool_authorizer(audit_trail:, profile:, approval_gate: DenyAllApprovalGate.new)
       ToolAuthorizer.new(
         tool_catalog: tool_catalog,
         allowed_tools: profile.allowed_tools,
         max_calls_per_tool: profile.max_calls_per_tool,
+        approval_gate: approval_gate,
         audit_trail: audit_trail
       )
     end
@@ -358,7 +378,8 @@ module JobSearch
         definitions: [
           search_jobs_definition,
           candidate_profile_definition,
-          analyze_jobs_definition
+          analyze_jobs_definition,
+          apply_job_definition
         ]
       )
     end
@@ -412,6 +433,23 @@ module JobSearch
       )
     end
 
+    # Único efeito colateral do agente. Fica fora do catálogo de planejamento
+    # de todos os papéis que planejam (só o APPLIER a tem) e exige aprovação
+    # humana da ação exata (ProposalApprovalGate).
+    def apply_job_definition
+      ToolDefinition.new(
+        name: :apply_job,
+        description: "Submits a job application that a human approved",
+        side_effects: true,
+        arguments: {
+          job_id: "String - the job key",
+          candidate_id: "String - the candidate id",
+          message: "String - the application message approved by the human"
+        },
+        schema: { job_id: String, candidate_id: String, message: String }
+      )
+    end
+
     def executor(execution_budget:)
       Executor.new(
         registry: registry,
@@ -461,6 +499,11 @@ module JobSearch
         )
 
         # Fábrica: a ferramenta nasce na execução, já com o avaliador do run.
+        registry.register(
+          :apply_job,
+          ToolFactory.new { ApplyJobTool.new(client: LocalApplicationsClient.new) }
+        )
+
         registry.register(
           :analyze_jobs,
           ToolFactory.new do

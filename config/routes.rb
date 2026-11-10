@@ -5,6 +5,12 @@ Rails.application.routes.draw do
 
   resource :profile, only: %i[edit update]
   resources :job_feedbacks, only: %i[create destroy]
+  resources :job_applications, only: :index, path: "candidaturas" do
+    member do
+      post :approve
+      post :reject
+    end
+  end
   resources :job_postings, only: :index, path: "vagas" do
     get :similar, on: :collection, path: "parecidas"
   end

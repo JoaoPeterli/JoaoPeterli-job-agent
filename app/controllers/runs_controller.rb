@@ -39,6 +39,7 @@ class RunsController < ApplicationController
     @jobs = jobs.each_with_index.sort_by do |job, index|
       [ @feedbacks[JobFeedback.key_for(job)]&.verdict == "dislike" ? 1 : 0, -job["score"].to_i, index ]
     end.map(&:first)
+    @applications = JobApplication.where(run_id: @run.id).order(score: :desc)
     @audit_trail = JobSearch::AuditTrail.new
     @audit_events = @audit_trail.events(@run.id)
     @audit_check = @audit_trail.verify(@run.id)

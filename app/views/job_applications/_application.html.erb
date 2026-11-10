@@ -1,0 +1,44 @@
+<%# application: JobApplication %>
+<article class="application application--<%= application.status %>" id="<%= dom_id(application) %>">
+  <header class="application__head">
+    <div class="application__job">
+      <p class="application__title"><%= job_title_link(application.to_job) %></p>
+      <p class="table__meta"><%= [ application.company, application.location, application.source ].compact_blank.join(" · ") %></p>
+    </div>
+    <div class="application__status">
+      <% if application.score %><span class="score__value">Nota <%= application.score %></span><% end %>
+      <%= application_status_badge(application.status) %>
+    </div>
+  </header>
+
+  <% if application.score_reason.present? %>
+    <p class="score-reason"><%= icon("sparkles") %><%= application.score_reason %></p>
+  <% end %>
+
+  <% if application.status == "proposed" %>
+    <%= form_with url: approve_job_application_path(application), method: :post, class: "application__form", data: { turbo: false } do |f| %>
+      <label class="label" for="message-<%= application.id %>">Mensagem da candidatura <span class="muted">(rascunho do agente; edite à vontade)</span></label>
+      <%= f.text_area :message, value: application.message, id: "message-#{application.id}", rows: 5, class: "input",
+                      maxlength: JobApplication::MAX_MESSAGE_LENGTH, required: true %>
+      <div class="application__actions">
+        <%= f.button type: "submit", class: "button button--primary",
+                     data: { turbo_confirm: "Aprovar e registrar esta candidatura com a mensagem acima?" } do %>
+          <%= icon("check") %> Aprovar e candidatar
+        <% end %>
+      </div>
+    <% end %>
+    <%= button_to reject_job_application_path(application), class: "button button--outline application__reject",
+                  form: { data: { turbo_confirm: "Rejeitar esta proposta?" } } do %>
+      <%= icon("x") %> Rejeitar
+    <% end %>
+  <% else %>
+    <blockquote class="application__message"><%= simple_format(application.message) %></blockquote>
+    <p class="table__meta">
+      <% if application.decided_at %>
+        <%= application.status == "rejected" ? "Rejeitada" : "Aprovada" %> por <%= application.decided_by %> em <%= l(application.decided_at, format: "%d/%m %H:%M") %>.
+      <% end %>
+      <% if application.applied_at %>Registrada em <%= l(application.applied_at, format: "%d/%m %H:%M") %> (<code><%= application.external_id %></code>). Conclua no site pelo link da vaga.<% end %>
+      <% if application.error_class.present? %>Falhou: <code><%= application.error_class %></code>.<% end %>
+    </p>
+  <% end %>
+</article>
