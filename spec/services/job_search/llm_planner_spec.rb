@@ -312,6 +312,75 @@ RSpec.describe JobSearch::LlmPlanner do
     end
   end
 
+  describe "context budget" do
+    let(:registry) { JobSearch::ToolRegistry.new }
+    let(:llm_client) { instance_double(JobSearch::LlmClient) }
+
+    before do
+      registry.register(:search_jobs, JobSearch::SearchJobsTool)
+      allow(llm_client).to receive(:complete)
+        .and_return(JSON.generate(steps: []))
+    end
+
+    it "rejects an objective that is too large without calling the LLM" do
+      planner = described_class.new(llm_client: llm_client, registry: registry)
+      huge_objective = "Ruby " * 2_000
+
+      expect do
+        planner.plan(context: JobSearch::PlanningContext.new(objective: huge_objective))
+      end.to raise_error(JobSearch::ContextBudgetExceeded)
+
+      expect(llm_client).not_to have_received(:complete)
+    end
+
+    it "does not retry a context budget error" do
+      planner = described_class.new(llm_client: llm_client, registry: registry)
+      policy = JobSearch::PlanningRetryPolicy.new(max_attempts: 3)
+      attempts = 0
+
+      expect do
+        policy.call(objective: "Ruby " * 2_000) do |context|
+          attempts += 1
+          planner.plan(context: context)
+        end
+      end.to raise_error(JobSearch::ContextBudgetExceeded)
+
+      expect(attempts).to eq(1)
+    end
+
+    it "truncates a huge previous error in the repair prompt" do
+      planner = described_class.new(llm_client: llm_client, registry: registry)
+      previous_error = JobSearch::PlanningError.new(
+        "Invalid LLM plan",
+        cause: JobSearch::PlanValidationError.new("Unknown tool: #{'x' * 10_000}")
+      )
+
+      planner.plan(
+        context: JobSearch::PlanningContext.new(
+          objective: "Find Ruby jobs", attempt: 2, previous_error: previous_error
+        )
+      )
+
+      expect(llm_client).to have_received(:complete) do |prompt:|
+        expect(prompt).to include("...[truncated]")
+        expect(prompt).to include("Objective:\nFind Ruby jobs")
+        expect(prompt.length).to be < 4_000
+      end
+    end
+
+    it "respects a custom context window" do
+      planner = described_class.new(
+        llm_client: llm_client,
+        registry: registry,
+        context_window: JobSearch::ContextWindow.new(max_input_tokens: 50)
+      )
+
+      expect do
+        planner.plan(context: JobSearch::PlanningContext.new(objective: "Find Ruby jobs"))
+      end.to raise_error(JobSearch::ContextBudgetExceeded)
+    end
+  end
+
   describe "malformed observation references" do
     let(:registry) do
       JobSearch::ToolRegistry.new.tap do |tool_registry|

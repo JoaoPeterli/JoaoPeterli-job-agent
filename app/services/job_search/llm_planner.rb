@@ -3,14 +3,22 @@ require "json"
 
 module JobSearch
   class LlmPlanner
+    DEFAULT_MAX_INPUT_TOKENS = 8_000
+    MAX_OBJECTIVE_TOKENS = 500
+    MAX_REPAIR_TOKENS = 300
+
     def initialize(
       llm_client:,
       registry:,
       tool_catalog: ToolCatalog.new(definitions: []),
       output_validator: PlanOutputValidator.new,
-      tool_validator: ToolValidator.new
+      tool_validator: ToolValidator.new,
+      context_window: ContextWindow.new(
+        max_input_tokens: DEFAULT_MAX_INPUT_TOKENS
+      )
     )
       @llm_client = llm_client
+      @context_window = context_window
       @registry = registry
       @tool_catalog = tool_catalog
       @output_validator = output_validator
@@ -63,17 +71,39 @@ module JobSearch
     end
 
     def build_prompt(context)
-      <<~PROMPT
-        You are an execution planner.
+      @context_window.build(prompt_sections(context)).text
+    end
 
-        Objective:
-        #{context.objective}
+    def prompt_sections(context)
+      [
+        PromptSection.new(
+          name: :role,
+          content: "You are an execution planner."
+        ),
+        PromptSection.new(
+          name: :objective,
+          content: "Objective:\n#{context.objective}",
+          max_tokens: MAX_OBJECTIVE_TOKENS
+        ),
+        PromptSection.new(
+          name: :repair,
+          content: repair_instructions(context),
+          required: false,
+          max_tokens: MAX_REPAIR_TOKENS
+        ),
+        PromptSection.new(
+          name: :tools,
+          content: "Available tools:\n#{@tool_catalog.to_prompt}"
+        ),
+        PromptSection.new(
+          name: :rules,
+          content: planning_rules
+        )
+      ]
+    end
 
-        #{repair_instructions(context)}
-
-        Available tools:
-        #{@tool_catalog.to_prompt}
-
+    def planning_rules
+      <<~RULES
         Create an execution plan using only the available tools.
 
         Return only valid JSON.
@@ -97,7 +127,7 @@ module JobSearch
         - Every referenced step must exist.
         - If a step references another step, it must also depend on that step.
         - Do not create cyclic dependencies.
-      PROMPT
+      RULES
     end
 
     def repair_instructions(context)

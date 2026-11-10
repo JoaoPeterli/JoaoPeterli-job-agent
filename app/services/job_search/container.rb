@@ -51,13 +51,20 @@ module JobSearch
     end
 
     def planner
-  LlmPlanner.new(
-    llm_client: llm_client,
-    registry: registry,
-    tool_catalog: tool_catalog,
-    tool_validator: tool_validator
-  )
-end
+      LlmPlanner.new(
+        llm_client: llm_client,
+        registry: registry,
+        tool_catalog: tool_catalog,
+        tool_validator: tool_validator,
+        context_window: context_window
+      )
+    end
+
+    def context_window
+      ContextWindow.new(
+        max_input_tokens: 8_000
+      )
+    end
 
     def planning_retry_policy
       PlanningRetryPolicy.new(
@@ -69,7 +76,8 @@ end
       OpenAiLlmClient.new(
         client: openai_client,
         model: "gpt-5.6",
-        output_schema: plan_output_schema
+        output_schema: plan_output_schema,
+        max_output_tokens: 2_000
       )
     end
 

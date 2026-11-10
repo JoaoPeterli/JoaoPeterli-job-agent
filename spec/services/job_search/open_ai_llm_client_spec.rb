@@ -63,5 +63,23 @@ RSpec.describe JobSearch::OpenAiLlmClient do
         '{"steps":[]}'
       )
     end
+
+    it "sends max_output_tokens when configured" do
+      responses_api = double("ResponsesAPI")
+      allow(responses_api).to receive(:create)
+        .and_return(instance_double("OpenAIResponse", output_text: "{}"))
+
+      llm_client = described_class.new(
+        client: double("OpenAIClient", responses: responses_api),
+        model: "test-model",
+        output_schema: {},
+        max_output_tokens: 2_000
+      )
+
+      llm_client.complete(prompt: "Create a plan")
+
+      expect(responses_api).to have_received(:create)
+        .with(hash_including(max_output_tokens: 2_000))
+    end
   end
 end
