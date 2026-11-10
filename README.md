@@ -1,5 +1,7 @@
 # Job Agent
 
+**Português** · [English](README.en.md)
+
 **Um agente de IA que procura vagas de emprego, avalia cada uma contra o seu perfil, aprende com o seu feedback e propõe candidaturas, que só são registradas depois da sua aprovação.**
 
 Projeto pessoal de estudo de **engenharia de agentes de IA em produção**, escrito em Ruby on Rails 8. O foco não é só "chamar um LLM", mas tudo o que torna um agente **confiável**: planejamento validado, ferramentas com limites, idempotência, auditoria à prova de adulteração, orçamento de tokens, avaliação de qualidade, memória, RAG, raciocínio em laço e aprovação humana para ações com efeito colateral.
