@@ -260,5 +260,26 @@ describe "retryable planning errors" do
       expect(memory).to be_empty
     end
   end
+
+  describe "lessons from previous runs" do
+    it "passes the same lessons to every attempt" do
+      policy = described_class.new(max_attempts: 2)
+      contexts = []
+
+      policy.call(objective: "Vagas Ruby", lessons: [ "Unknown tool: foo" ]) do |context|
+        contexts << context
+        if contexts.size == 1
+          raise JobSearch::PlanningError.new(
+            "Invalid LLM plan",
+            cause: JobSearch::PlanValidationError.new("Cycle detected")
+          )
+        end
+
+        :valid_plan
+      end
+
+      expect(contexts.map(&:lessons)).to eq([ [ "Unknown tool: foo" ], [ "Unknown tool: foo" ] ])
+    end
+  end
 end
 end

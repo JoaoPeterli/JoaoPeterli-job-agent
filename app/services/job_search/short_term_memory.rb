@@ -19,14 +19,16 @@ module JobSearch
     DEFAULT_MAX_ENTRIES = 50
     MAX_CONTENT_LENGTH = 500
 
-    def initialize(max_entries: DEFAULT_MAX_ENTRIES)
+    # entries: usado para restaurar uma memória persistida. A sequência
+    # continua a partir do maior seq restaurado.
+    def initialize(max_entries: DEFAULT_MAX_ENTRIES, entries: [])
       unless max_entries.is_a?(Integer) && max_entries.positive?
         raise ArgumentError, "max_entries must be a positive Integer"
       end
 
       @max_entries = max_entries
-      @entries = []
-      @seq = 0
+      @entries = entries.last(max_entries)
+      @seq = entries.map(&:seq).max || 0
     end
 
     def record(kind, content)

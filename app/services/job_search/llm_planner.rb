@@ -7,6 +7,7 @@ module JobSearch
     MAX_OBJECTIVE_TOKENS = 500
     MAX_REPAIR_TOKENS = 300
     MAX_HISTORY_TOKENS = 400
+    MAX_LESSONS_TOKENS = 300
 
     def initialize(
       llm_client:,
@@ -87,6 +88,12 @@ module JobSearch
           max_tokens: MAX_OBJECTIVE_TOKENS
         ),
         PromptSection.new(
+          name: :lessons,
+          content: lessons_instructions(context),
+          required: false,
+          max_tokens: MAX_LESSONS_TOKENS
+        ),
+        PromptSection.new(
           name: :history,
           content: history_instructions(context),
           required: false,
@@ -135,6 +142,17 @@ module JobSearch
         - If a step references another step, it must also depend on that step.
         - Do not create cyclic dependencies.
       RULES
+    end
+
+    def lessons_instructions(context)
+      return "" if context.lessons.empty?
+
+      lines = context.lessons.map { |lesson| "- #{lesson}" }
+
+      <<~LESSONS
+        Plans for similar objectives were rejected in previous runs for these reasons. Avoid them:
+        #{lines.join("\n")}
+      LESSONS
     end
 
     def history_instructions(context)

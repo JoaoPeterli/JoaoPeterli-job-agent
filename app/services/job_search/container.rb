@@ -8,7 +8,9 @@ module JobSearch
         objective: objective,
         planner: planner,
         plan_executor: plan_executor,
-        planning_retry_policy: planning_retry_policy
+        planning_retry_policy: planning_retry_policy,
+        memory_store: memory_store,
+        memory_retriever: memory_retriever
       )
     end
 
@@ -25,6 +27,16 @@ module JobSearch
     end
 
     private
+
+    def memory_store
+      @memory_store ||= PersistentMemoryStore.new
+    end
+
+    def memory_retriever
+      MemoryRetriever.new(
+        store: memory_store
+      )
+    end
 
     def execution_budget
       ExecutionBudget.new(

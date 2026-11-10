@@ -9,7 +9,9 @@ module JobSearch
     # memory: memória de curto prazo da execução. Cada plano rejeitado é
     # registrado nela, e as tentativas seguintes recebem o histórico para
     # não repetir erros que já foram corrigidos antes.
-    def call(objective:, memory: ShortTermMemory.new)
+    #
+    # lessons: lições de execuções anteriores, iguais em todas as tentativas.
+    def call(objective:, memory: ShortTermMemory.new, lessons: [])
       attempt = 0
       previous_error = nil
       history = []
@@ -21,7 +23,8 @@ module JobSearch
           objective: objective,
           attempt: attempt,
           previous_error: previous_error,
-          history: history.dup
+          history: history.dup,
+          lessons: lessons
         )
 
         yield(context)

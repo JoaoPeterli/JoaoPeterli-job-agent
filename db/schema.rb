@@ -10,9 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_04_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_10_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "agent_memory_entries", force: :cascade do |t|
+    t.string "run_id", null: false
+    t.text "objective", null: false
+    t.integer "seq", null: false
+    t.string "kind", null: false
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.index ["kind", "created_at"], name: "index_agent_memory_entries_on_kind_and_created_at"
+    t.index ["run_id", "seq"], name: "index_agent_memory_entries_on_run_id_and_seq", unique: true
+  end
 
   create_table "job_search_operations", force: :cascade do |t|
     t.string "operation_key", null: false

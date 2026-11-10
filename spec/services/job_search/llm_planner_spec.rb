@@ -424,6 +424,27 @@ RSpec.describe JobSearch::LlmPlanner do
       end
     end
 
+    it "includes lessons from previous runs" do
+      context = JobSearch::PlanningContext.new(
+        objective: "Find Ruby jobs", lessons: [ "Unknown tool: linkedin_search" ]
+      )
+
+      planner.plan(context: context)
+
+      expect(llm_client).to have_received(:complete) do |prompt:|
+        expect(prompt).to include("rejected in previous runs")
+        expect(prompt).to include("- Unknown tool: linkedin_search")
+      end
+    end
+
+    it "omits the lessons section when there are none" do
+      planner.plan(context: JobSearch::PlanningContext.new(objective: "Find Ruby jobs"))
+
+      expect(llm_client).to have_received(:complete) do |prompt:|
+        expect(prompt).not_to include("previous runs")
+      end
+    end
+
     it "keeps the history inside its token limit" do
       history = Array.new(50) { |i| "Attempt #{i}: #{'x' * 400}" }
       context = JobSearch::PlanningContext.new(

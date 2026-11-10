@@ -59,4 +59,16 @@ RSpec.describe JobSearch::ShortTermMemory do
 
     expect { memory.entries << :hack }.to raise_error(FrozenError)
   end
+
+  it "can be restored from persisted entries and continue the sequence" do
+    entries = [
+      described_class::Entry.new(seq: 4, kind: :plan_started, content: "1 steps: search"),
+      described_class::Entry.new(seq: 5, kind: :step_completed, content: "search (search_jobs)")
+    ]
+
+    memory = described_class.new(entries: entries)
+
+    expect(memory.entries).to eq(entries)
+    expect(memory.record(:event, "next").seq).to eq(6)
+  end
 end
