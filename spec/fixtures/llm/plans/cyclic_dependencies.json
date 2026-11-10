@@ -1,0 +1,6 @@
+{
+  "steps": [
+    { "name": "search", "tool": "search_jobs", "arguments": { "technology": "Ruby", "remote": true }, "dependencies": ["profile"] },
+    { "name": "profile", "tool": "candidate_profile", "arguments": {}, "dependencies": ["search"] }
+  ]
+}

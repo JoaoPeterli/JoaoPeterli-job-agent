@@ -3,6 +3,12 @@ require "openai"
 
 module JobSearch
   class Container
+    # llm_client: permite trocar o LLM (ex.: cliente roteirizado nos testes
+    # de integração) mantendo todo o resto da montagem real.
+    def initialize(llm_client: nil)
+      @llm_client = llm_client
+    end
+
     def agent(objective:)
       Agent.new(
         objective: objective,
@@ -85,7 +91,7 @@ module JobSearch
     end
 
     def llm_client
-      OpenAiLlmClient.new(
+      @llm_client ||= OpenAiLlmClient.new(
         client: openai_client,
         model: "gpt-5.6",
         output_schema: plan_output_schema,

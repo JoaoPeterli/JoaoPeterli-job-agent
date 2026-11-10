@@ -1,0 +1,5 @@
+{
+  "steps": [
+    { "name": "search", "tool": "search_jobs", "arguments": { "technology": "Ruby on Rails", "remote": false }, "dependencies": [] }
+  ]
+}

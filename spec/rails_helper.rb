@@ -45,6 +45,9 @@ RSpec.configure do |config|
   # instead of true.
   config.use_transactional_fixtures = true
 
+  # Testes contra o LLM real (spec/live) só rodam com LIVE_LLM=1.
+  config.filter_run_excluding live_llm: true unless ENV["LIVE_LLM"] == "1"
+
   # You can uncomment this line to turn off ActiveRecord support entirely.
   # config.use_active_record = false
 

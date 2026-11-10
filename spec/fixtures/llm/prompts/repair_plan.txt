@@ -1,0 +1,59 @@
+You are an execution planner.
+
+Objective:
+Encontrar vagas Ruby remotas
+
+Plans for similar objectives were rejected in previous runs for these reasons. Avoid them:
+- Invalid type for argument: remote
+
+
+Earlier plans in this run were also rejected. Do not repeat these mistakes:
+- Attempt 1: Unknown tool: linkedin_search
+
+
+This is planning attempt 3.
+
+The previous plan was rejected.
+
+Reason:
+Cycle detected
+
+Create a corrected plan that fixes the previous error.
+
+
+Available tools:
+Tool: search_jobs
+Description: Search for job opportunities
+Arguments: {:technology=>"String - technology only, for example 'Ruby', 'Ruby on Rails', 'Node.js'. Do not include seniority, job title or remote status.", :remote=>"Boolean - whether the job must be remote"}
+
+Tool: candidate_profile
+Description: Returns the candidate professional profile
+Arguments: {}
+
+Tool: analyze_jobs
+Description: Analyzes jobs against the candidate profile
+Arguments: {:jobs=>"Reference to the result of the job search step", :profile=>"Reference to the result of the candidate profile step"}
+
+Create an execution plan using only the available tools.
+
+Return only valid JSON.
+
+The root JSON object must contain a "steps" array.
+
+Each step must contain:
+- name
+- tool
+- arguments
+- dependencies
+
+To reference the result of another step, use:
+{
+  "$ref": "step_name"
+}
+
+Important rules:
+- Use only tools listed above.
+- Do not invent tools.
+- Every referenced step must exist.
+- If a step references another step, it must also depend on that step.
+- Do not create cyclic dependencies.
