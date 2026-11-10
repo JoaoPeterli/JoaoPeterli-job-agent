@@ -33,6 +33,10 @@ module JobAgent
     default_job_sources << "jooble" if ENV["JOOBLE_API_KEY"].present?
     config.x.job_sources = ENV.fetch("JOB_SOURCES", default_job_sources.join(","))
                               .split(",").map(&:strip).reject(&:empty?)
+    # Nota das vagas pelo LLM (JobSearch::JobEvaluator), com motivo. Com
+    # "false", fica só a régua fixa da AnalyzeJobsTool (sem custo de LLM).
+    config.x.llm_job_evaluation = ENV.fetch("LLM_JOB_EVALUATION", "true") == "true"
+
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Aplicação web (Hotwire) + jobs. Era api_only até o front ser criado.

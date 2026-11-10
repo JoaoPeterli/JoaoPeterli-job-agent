@@ -1,0 +1,31 @@
+require "rails_helper"
+
+RSpec.describe JobSearch::ToolFactory do
+  it "builds a new tool on every execution" do
+    factory = described_class.new { Object.new }
+
+    expect(factory.new).not_to be(factory.new)
+  end
+
+  describe "the analyze_jobs registration in the Container" do
+    def analyze_tool(container) = container.send(:registry).fetch(:analyze_jobs).new
+
+    it "has no LLM evaluator when the feature is off (tests) or an LLM client is injected" do
+      expect(analyze_tool(JobSearch::Container.new).instance_variable_get(:@evaluator)).to be_nil
+
+      allow(Rails.configuration.x).to receive(:llm_job_evaluation).and_return(true)
+      injected = JobSearch::Container.new(llm_client: instance_double(JobSearch::LlmClient))
+      expect(analyze_tool(injected).instance_variable_get(:@evaluator)).to be_nil
+    end
+
+    it "gets a metered LLM evaluator when the feature is on" do
+      allow(Rails.configuration.x).to receive(:llm_job_evaluation).and_return(true)
+      allow(OpenAI::Client).to receive(:new).and_return(double("OpenAI::Client"))
+
+      evaluator = analyze_tool(JobSearch::Container.new).instance_variable_get(:@evaluator)
+
+      expect(evaluator).to be_a(JobSearch::JobEvaluator)
+      expect(evaluator.instance_variable_get(:@llm_client)).to be_a(JobSearch::MeteredLlmClient)
+    end
+  end
+end

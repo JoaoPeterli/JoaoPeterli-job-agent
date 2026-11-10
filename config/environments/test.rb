@@ -24,6 +24,8 @@ Rails.application.configure do
 
   # Testes nunca acessam a rede: a busca usa a fonte fixa de exemplo.
   config.x.job_sources = %w[sample]
+  # ...nem chamam o LLM avaliador de vagas (specs próprios usam um LLM falso).
+  config.x.llm_job_evaluation = false
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable

@@ -22,6 +22,11 @@ module JobSearch
     # e abaixo do rate limit do provedor de LLM.
     MAX_PARALLEL_DELEGATIONS = 3
 
+    # Avaliação das vagas por LLM (JobEvaluator): orçamento próprio por
+    # execução da ferramenta analyze_jobs, separado do orçamento do planner.
+    MAX_EVALUATION_TOKENS = 12_000
+    MAX_EVALUATION_COST_USD = 0.25
+
     # llm_client: permite trocar o LLM (ex.: cliente roteirizado nos testes
     # de integração) mantendo todo o resto da montagem real.
     #
@@ -48,6 +53,7 @@ module JobSearch
       parent_run_id: nil
     )
       tracer ||= new_tracer
+      @run_tracer = tracer
 
       Agent.new(
         objective: objective,
@@ -138,7 +144,7 @@ module JobSearch
     private
 
     def new_tracer
-      Observability::Tracer.new(
+      @run_tracer = Observability::Tracer.new(
         event_logger: @event_logger,
         listeners: [ Observability::RunMetrics.new(event_logger: @event_logger) ],
         checkpoint: @checkpoint
@@ -278,6 +284,33 @@ module JobSearch
       OpenAI::Client.new
     end
 
+    # Avaliador por LLM da analyze_jobs. Desligado por configuração
+    # (LLM_JOB_EVALUATION=false; sempre nos testes) e quando um llm_client
+    # foi injetado (testes/evals roteirizados), para não consumir o roteiro.
+    def job_evaluator
+      return unless Rails.configuration.x.llm_job_evaluation && @llm_client.nil?
+
+      JobEvaluator.new(
+        llm_client: MeteredLlmClient.new(
+          client: evaluation_llm_client,
+          tracer: @run_tracer || Observability::NullTracer.new,
+          pricing_table: pricing_table,
+          budget: LlmBudget.new(max_total_tokens: MAX_EVALUATION_TOKENS, max_cost_usd: MAX_EVALUATION_COST_USD),
+          model: LLM_MODEL
+        )
+      )
+    end
+
+    def evaluation_llm_client
+      @evaluation_llm_client ||= OpenAiLlmClient.new(
+        client: openai_client,
+        model: LLM_MODEL,
+        output_schema: JobEvaluator::SCHEMA,
+        schema_name: "job_search_job_evaluation",
+        max_output_tokens: 2_500
+      )
+    end
+
     def tool_catalog
       @tool_catalog ||= ToolCatalog.new(
         definitions: [
@@ -385,9 +418,10 @@ module JobSearch
           CandidateProfileTool
         )
 
+        # Fábrica: a ferramenta nasce na execução, já com o avaliador do run.
         registry.register(
           :analyze_jobs,
-          AnalyzeJobsTool
+          ToolFactory.new { AnalyzeJobsTool.new(evaluator: job_evaluator, event_logger: @event_logger) }
         )
 
         registry

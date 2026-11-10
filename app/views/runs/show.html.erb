@@ -69,7 +69,7 @@
     <div class="card__header">
       <h2 class="card__title">Vagas <span class="count"><%= @jobs.size %></span></h2>
       <p class="card__description">
-        Ordenadas pela aderência ao seu perfil. Clique na vaga para abrir o anúncio original.
+        Ordenadas pela aderência ao seu <%= link_to "perfil", edit_profile_path, class: "text-link" %>. As melhores são avaliadas pela IA, com o motivo da nota. Clique na vaga para abrir o anúncio original.
         <% if (sources = JobSearch::JobSources.attributions).any? %>
           Fontes: <%= safe_join(sources.map { |source| link_to(source[:name], source[:url], target: "_blank", rel: "noopener", class: "text-link") }, ", ") %>.
         <% end %>
@@ -99,6 +99,9 @@
                   <%= job_title_link(job) %>
                   <span class="table__meta"><%= [ job["company"], job["location"] ].compact_blank.join(" · ").presence || "—" %></span>
                   <span class="show-sm table__meta"><%= [ job["source"], job["remote"] ? "Remota" : "Presencial", job_published(job) ].compact_blank.join(" · ") %></span>
+                  <% if job["score_reason"].present? %>
+                    <span class="score-reason"><%= icon("sparkles") %><%= job["score_reason"] %></span>
+                  <% end %>
                 </td>
                 <td class="hide-sm muted nowrap"><%= job["source"].presence || "—" %></td>
                 <td class="hide-sm">
@@ -114,6 +117,9 @@
                     <span class="score">
                       <span class="score__track"><span class="score__bar" style="<%= score_width(job["score"]) %>"></span></span>
                       <span class="score__value"><%= job["score"] %></span>
+                      <% if job["scored_by"] == "llm" %>
+                        <span class="score__by" title="Nota da IA. Pela régua fixa: <%= job["rule_score"] %>">IA</span>
+                      <% end %>
                     </span>
                   <% else %>
                     <span class="muted">—</span>

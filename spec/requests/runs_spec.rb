@@ -150,6 +150,19 @@ RSpec.describe "Runs UI", type: :request do
       expect(body).not_to include("Cancelar")
     end
 
+    it "shows the AI reason and badge for LLM-scored jobs, escaping the reason" do
+      run = create_run(status: "completed", result: { "output" => [
+        { "title" => "Senior Rails", "score" => 92, "scored_by" => "llm", "rule_score" => 60,
+          "score_reason" => "Rails sênior remoto <b>perfeito</b>" },
+        { "title" => "Java Dev", "score" => 10, "scored_by" => "rules" }
+      ] })
+
+      get run_path(run), headers: auth
+
+      expect(response.body).to include("Rails sênior remoto &lt;b&gt;perfeito&lt;/b&gt;", "Pela régua fixa: 60")
+      expect(response.body.scan('class="score__by"').size).to eq(1)
+    end
+
     it "lists the team agents in delegation order" do
       run = create_run(status: "completed", mode: "supervisor", result: { "agents" => [
         { "delegation" => "ruby", "run_id" => "r1" }, { "delegation" => "rails", "run_id" => "r2" },
