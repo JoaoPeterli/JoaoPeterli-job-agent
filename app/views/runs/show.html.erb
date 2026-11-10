@@ -102,6 +102,9 @@
                   <%= job_title_link(job) %>
                   <span class="table__meta"><%= [ job["company"], job["location"] ].compact_blank.join(" · ").presence || "—" %></span>
                   <span class="show-sm table__meta"><%= [ job["source"], job["remote"] ? "Remota" : "Presencial", job_published(job) ].compact_blank.join(" · ") %></span>
+                  <% if @indexed_keys.include?(key) %>
+                    <%= link_to similar_job_postings_path(key: key), class: "similar-link" do %><%= icon("layers") %>Parecidas<% end %>
+                  <% end %>
                   <% if job["score_reason"].present? %>
                     <span class="score-reason"><%= icon("sparkles") %><%= job["score_reason"] %></span>
                   <% end %>

@@ -80,6 +80,25 @@ RSpec.describe JobSearch::JobEvaluator do
     expect(prompt).to include("learn their taste from it")
   end
 
+  it "asks the RAG memory for the feedback relevant to these jobs (and falls back when it fails)" do
+    memory = instance_double(JobSearch::PreferenceMemory)
+    allow(memory).to receive(:relevant_for).and_return(
+      liked: [ { title: "Staff Rails Engineer", company: "ACME", remote: true, tags: [] } ], disliked: []
+    )
+    llm.response = { evaluations: [] }.to_json
+    recent = profile.merge(preferences: { liked: [ { title: "Recent Mark", remote: true } ], disliked: [] })
+
+    described_class.new(llm_client: llm, memory: memory).evaluate(jobs: jobs, profile: recent)
+    expect(memory).to have_received(:relevant_for).with(jobs)
+    expect(llm.prompts.last).to include("Liked: Staff Rails Engineer").and(satisfy { |p| !p.include?("Recent Mark") })
+
+    allow(memory).to receive(:relevant_for).and_raise(JobSearch::EmbeddingError, "down")
+    logger = instance_double(JobSearch::Observability::EventLogger, warn: nil)
+    described_class.new(llm_client: llm, memory: memory, event_logger: logger).evaluate(jobs: jobs, profile: recent)
+    expect(llm.prompts.last).to include("Liked: Recent Mark")
+    expect(logger).to have_received(:warn).with(hash_including(event: "preference_memory.failed"))
+  end
+
   it "has no feedback section without preferences" do
     evaluate(evaluations: [])
 

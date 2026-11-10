@@ -291,6 +291,8 @@ module JobSearch
       return unless Rails.configuration.x.llm_job_evaluation && @llm_client.nil?
 
       JobEvaluator.new(
+        memory: (PreferenceMemory.new(index: job_index) if job_index),
+        event_logger: @event_logger,
         llm_client: MeteredLlmClient.new(
           client: evaluation_llm_client,
           tracer: @run_tracer || Observability::NullTracer.new,
@@ -299,6 +301,14 @@ module JobSearch
           model: LLM_MODEL
         )
       )
+    end
+
+    # Índice vetorial das vagas (RAG). Desligado por configuração
+    # (RAG_ENABLED=false; sempre nos testes) e com llm_client injetado.
+    def job_index
+      return unless Rails.configuration.x.rag_enabled && @llm_client.nil?
+
+      @job_index ||= JobIndex.new(embedder: EmbeddingClient.new(event_logger: @event_logger))
     end
 
     def evaluation_llm_client
@@ -421,7 +431,9 @@ module JobSearch
         # Fábrica: a ferramenta nasce na execução, já com o avaliador do run.
         registry.register(
           :analyze_jobs,
-          ToolFactory.new { AnalyzeJobsTool.new(evaluator: job_evaluator, event_logger: @event_logger) }
+          ToolFactory.new do
+            AnalyzeJobsTool.new(evaluator: job_evaluator, indexer: job_index, event_logger: @event_logger)
+          end
         )
 
         registry

@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_130000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "vector"
 
   create_table "agent_audit_events", force: :cascade do |t|
     t.string "run_id", null: false
@@ -85,8 +86,29 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_130000) do
     t.uuid "run_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.vector "embedding", limit: 1536
+    t.index ["embedding"], name: "index_job_feedbacks_on_embedding", opclass: :vector_cosine_ops, using: :hnsw
     t.index ["job_key"], name: "index_job_feedbacks_on_job_key", unique: true
     t.index ["verdict", "updated_at"], name: "index_job_feedbacks_on_verdict_and_updated_at"
+  end
+
+  create_table "job_postings", force: :cascade do |t|
+    t.string "job_key", null: false
+    t.string "title", null: false
+    t.string "company"
+    t.string "location"
+    t.string "source"
+    t.string "url"
+    t.string "tags", default: [], null: false, array: true
+    t.boolean "remote", default: false, null: false
+    t.datetime "published_at"
+    t.uuid "first_seen_run_id"
+    t.datetime "last_seen_at", null: false
+    t.vector "embedding", limit: 1536
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["embedding"], name: "index_job_postings_on_embedding", opclass: :vector_cosine_ops, using: :hnsw
+    t.index ["job_key"], name: "index_job_postings_on_job_key", unique: true
   end
 
   create_table "job_search_operations", force: :cascade do |t|

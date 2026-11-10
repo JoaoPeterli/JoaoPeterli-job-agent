@@ -21,6 +21,9 @@ module JobSearch
     # Abaixo do timeout da ferramenta (15 s, Container): se o LLM demorar,
     # vale a régua, em vez de o timeout da ferramenta derrubar o run.
     EVALUATION_TIMEOUT_SECONDS = 10
+    # Indexar as vagas (embeddings, RAG) é um extra: prazo curto e, se
+    # falhar, a análise segue sem índice.
+    INDEXING_TIMEOUT_SECONDS = 4
 
     SENIORITY_PATTERNS = {
       "junior" => /\b(j[uú]nior|jr\.?|entry[- ]level|trainee|est[aá]gi[oá]ri[oa]?)(?![[:alnum:]])/i,
@@ -29,14 +32,16 @@ module JobSearch
       "especialista" => /\b(staff|principal|especialista|specialist|tech lead|lead)\b/i
     }.freeze
 
-    def initialize(evaluator: nil, event_logger: Observability::EventLogger.new,
+    def initialize(evaluator: nil, indexer: nil, event_logger: Observability::EventLogger.new,
                    evaluation_timeout: EVALUATION_TIMEOUT_SECONDS)
       @evaluator = evaluator
+      @indexer = indexer
       @event_logger = event_logger
       @evaluation_timeout = evaluation_timeout
     end
 
     def call(jobs:, profile:)
+      index(jobs)
       normalized = normalize(profile)
 
       scored = jobs.map do |job|
@@ -48,6 +53,15 @@ module JobSearch
     end
 
     private
+
+    # Grava as vagas no índice vetorial (busca semântica e "parecidas").
+    def index(jobs)
+      return unless @indexer
+
+      Timeout.timeout(INDEXING_TIMEOUT_SECONDS, EmbeddingError, "indexing timed out") { @indexer.index(jobs) }
+    rescue EmbeddingError, ActiveRecord::ActiveRecordError => error
+      @event_logger.warn(event: "job_index.failed", error_class: error.class.name, error: error.message.truncate(200))
+    end
 
     # Só as melhores pela régua vão ao LLM (custo previsível); a ordem
     # original das vagas é mantida.

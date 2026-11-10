@@ -125,6 +125,11 @@ module RunsHelper
     tag.div(safe_join(buttons), class: "feedback")
   end
 
+  # Distância de cosseno (0 a 2) -> similaridade em % (100% = mesmo sentido).
+  def similarity_percent(distance)
+    "#{((1 - distance.to_f) * 100).round.clamp(0, 100)}%"
+  end
+
   def score_width(score)
     "width: #{score.to_i.clamp(0, 100)}%"
   end

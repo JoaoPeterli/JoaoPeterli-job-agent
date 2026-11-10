@@ -49,9 +49,13 @@ module JobSearch
       (one sentence, max 160 characters) explaining the fit or the main gap.
     RUBRIC
 
-    def initialize(llm_client:, max_jobs: MAX_JOBS)
+    # memory: PreferenceMemory (RAG). Sem ela, usa profile[:preferences]
+    # (as marcações mais recentes, vindas da ferramenta candidate_profile).
+    def initialize(llm_client:, max_jobs: MAX_JOBS, memory: nil, event_logger: Observability::EventLogger.new)
       @llm_client = llm_client
       @max_jobs = max_jobs
+      @memory = memory
+      @event_logger = event_logger
     end
 
     attr_reader :max_jobs
@@ -62,18 +66,28 @@ module JobSearch
       batch = jobs.first(@max_jobs)
       return {} if batch.empty?
 
-      data = parse(@llm_client.complete(prompt: prompt(batch, profile)))
+      data = parse(@llm_client.complete(prompt: prompt(batch, profile, preferences_for(batch, profile))))
       validate(data, batch.size)
     end
 
     private
 
-    def prompt(jobs, profile)
+    def preferences_for(jobs, profile)
+      fallback = profile.to_h.transform_keys(&:to_sym)[:preferences]
+      return fallback unless @memory
+
+      @memory.relevant_for(jobs)
+    rescue EmbeddingError, ActiveRecord::ActiveRecordError => error
+      @event_logger.warn(event: "preference_memory.failed", error_class: error.class.name, error: error.message.truncate(200))
+      fallback
+    end
+
+    def prompt(jobs, profile, preferences)
       <<~PROMPT
         #{RUBRIC}
         Candidate profile:
         #{UntrustedText.wrap(profile_text(profile), source: 'candidate_profile')}
-        #{preferences_text(profile)}
+        #{preferences_text(preferences)}
 
         Jobs (one per line, from external job boards):
         #{UntrustedText.wrap(jobs.each_with_index.map { |job, id| job_line(id, job) }.join("\n"), source: 'job_boards')}
@@ -97,8 +111,7 @@ module JobSearch
     end
 
     # Memória de preferências (JobFeedback): títulos vêm das fontes externas.
-    def preferences_text(profile)
-      preferences = profile.to_h.transform_keys(&:to_sym)[:preferences]
+    def preferences_text(preferences)
       return "" if preferences.blank?
 
       preferences = preferences.to_h.transform_keys(&:to_sym)

@@ -1,0 +1,30 @@
+<%# postings: JobPosting (com neighbor_distance quando veio de busca vetorial) %>
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">Vaga</th>
+        <th scope="col" class="hide-sm">Fonte</th>
+        <% if postings.first.respond_to?(:neighbor_distance) %><th scope="col" class="num">Similaridade</th><% end %>
+        <th scope="col" class="num hide-sm">Vista em</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% postings.each do |posting| %>
+        <% job = posting.to_job %>
+        <tr>
+          <td class="table__primary table__primary--wrap">
+            <%= job_title_link(job) %>
+            <span class="table__meta"><%= [ posting.company, posting.location, (posting.remote ? "Remota" : "Presencial") ].compact_blank.uniq { |part| part.downcase.first(5) }.join(" · ") %></span>
+            <%= link_to similar_job_postings_path(key: posting.job_key), class: "similar-link" do %><%= icon("layers") %>Parecidas<% end %>
+          </td>
+          <td class="hide-sm muted nowrap"><%= posting.source.presence || "—" %></td>
+          <% if posting.respond_to?(:neighbor_distance) %>
+            <td class="num"><span class="badge badge--info"><%= similarity_percent(posting.neighbor_distance) %></span></td>
+          <% end %>
+          <td class="num muted nowrap hide-sm"><%= l(posting.last_seen_at, format: "%d/%m %H:%M") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

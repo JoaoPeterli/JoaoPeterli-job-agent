@@ -146,6 +146,8 @@ GEM
       drb (~> 2.0)
       prism (~> 1.5)
     msgpack (1.8.5)
+    neighbor (0.6.0)
+      activerecord (>= 7.1)
     net-imap (0.6.7)
       date
       net-protocol
@@ -371,6 +373,7 @@ DEPENDENCIES
   importmap-rails (~> 2.2)
   json (~> 2.9)
   kamal
+  neighbor (~> 0.6)
   openai
   pg (~> 1.1)
   propshaft (~> 1.3)

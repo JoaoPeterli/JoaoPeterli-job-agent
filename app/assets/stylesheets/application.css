@@ -454,6 +454,7 @@ fieldset.field > legend { margin-bottom: 0.5rem; }
 /* ---------- Tabela ---------- */
 
 .table-container { overflow-x: auto; margin: 0 -1.5rem -1.5rem; border-top: 1px solid var(--border); }
+.card > .table-container:first-child { margin-top: -1.5rem; border-top: 0; }
 .table { width: 100%; border-collapse: collapse; }
 .table th {
   height: 2.5rem;
@@ -661,6 +662,7 @@ fieldset.field > legend { margin-bottom: 0.5rem; }
   .page-header__actions .button { flex: 1; }
   .card { padding: 1rem; }
   .table-container { margin: 0 -1rem -1rem; }
+  .card > .table-container:first-child { margin-top: -1rem; }
   .table th:first-child, .table td:first-child { padding-left: 1rem; }
   .table th:last-child, .table td:last-child { padding-right: 1rem; }
   .choice-grid { grid-template-columns: minmax(0, 1fr); }
@@ -754,3 +756,15 @@ fieldset.field > legend { margin-bottom: 0.5rem; }
 .preferences__title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .preferences__icon--like { color: var(--success); }
 .preferences__icon--dislike { color: var(--danger); }
+
+/* ---------- Histórico e vagas parecidas ---------- */
+
+.search-form { display: flex; gap: 0.5rem; }
+.search-form__field { position: relative; flex: 1; }
+.search-form__icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--muted-foreground); }
+.search-form__input { padding-left: 2.25rem; height: 2.25rem; }
+.search-form__hint { margin-top: 0.75rem; }
+.similar-link { display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.25rem; font-size: 0.75rem; font-weight: 500; color: var(--primary); }
+.similar-link .icon { width: 0.75rem; height: 0.75rem; }
+.similar-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.similar-reference { font-size: 1rem; font-weight: 600; margin-top: 0.25rem; }

@@ -102,4 +102,27 @@ RSpec.describe JobSearch::AnalyzeJobsTool do
       expect(event_logger).to have_received(:warn).with(hash_including(event: "job_evaluation.failed")).exactly(3).times
     end
   end
+
+  describe "with the vector index (RAG)" do
+    let(:event_logger) { instance_double(JobSearch::Observability::EventLogger, warn: nil) }
+    let(:jobs) { [ { title: "Senior Ruby Developer", remote: true } ] }
+
+    it "indexes every analyzed job" do
+      indexer = instance_double(JobSearch::JobIndex, index: {})
+
+      described_class.new(indexer: indexer, event_logger: event_logger).call(jobs: jobs, profile: profile)
+
+      expect(indexer).to have_received(:index).with(jobs)
+    end
+
+    it "keeps analyzing when indexing fails" do
+      indexer = instance_double(JobSearch::JobIndex)
+      allow(indexer).to receive(:index).and_raise(JobSearch::EmbeddingError, "down")
+
+      result = described_class.new(indexer: indexer, event_logger: event_logger).call(jobs: jobs, profile: profile)
+
+      expect(result.first[:score]).to eq(60)
+      expect(event_logger).to have_received(:warn).with(hash_including(event: "job_index.failed"))
+    end
+  end
 end

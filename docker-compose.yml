@@ -1,7 +1,10 @@
+# Postgres de desenvolvimento, com a extensão pgvector (embeddings, RAG).
+# Porta 5437 no host: a 5432 costuma estar ocupada por outros projetos.
+# Rode o app com DB_HOST=127.0.0.1 DB_PORT=5437.
 services:
   postgres:
-    image: postgres:17
-    container_name: job_agent_postgres
+    image: pgvector/pgvector:pg17
+    container_name: job_agent_pgvector
     restart: unless-stopped
 
     environment:
@@ -10,10 +13,11 @@ services:
       POSTGRES_DB: job_agent_development
 
     ports:
-      - "5432:5432"
+      - "5437:5432"
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - job_agent_pgdata:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:
+  job_agent_pgdata:
+    external: true

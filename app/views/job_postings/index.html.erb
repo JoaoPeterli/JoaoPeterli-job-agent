@@ -1,0 +1,31 @@
+<% content_for :title, "Histórico de vagas" %>
+
+<div class="page">
+  <%= render "shared/page_header", title: "Histórico de vagas",
+             description: "Todas as vagas que o agente já encontrou. A busca entende o significado: \"backend com IA\" acha vagas de LLM e RAG mesmo sem essas palavras." %>
+
+  <section class="card">
+    <%= form_with url: job_postings_path, method: :get, class: "search-form", data: { turbo_frame: "_top" } do |f| %>
+      <label class="visually-hidden" for="q">Buscar vagas pelo significado</label>
+      <div class="search-form__field">
+        <%= icon("search", class_name: "search-form__icon") %>
+        <%= f.search_field :q, value: @query, id: "q", class: "input search-form__input", maxlength: JobPostingsController::MAX_QUERY_LENGTH,
+                           placeholder: "Ex.: backend com IA e Rails, remoto para LATAM" %>
+      </div>
+      <%= f.button type: "submit", class: "button button--primary" do %>Buscar<% end %>
+    <% end %>
+    <p class="field__hint search-form__hint">
+      <%= number_with_delimiter(@total, delimiter: ".") %> vagas no histórico.
+      <% if @query.present? %>Mais parecidas com "<%= @query %>" primeiro. <%= link_to "Limpar busca", job_postings_path, class: "text-link" %><% else %>Mostrando as vistas mais recentemente.<% end %>
+    </p>
+  </section>
+
+  <section class="card">
+    <% if @postings.empty? %>
+      <%= render "shared/empty_state", icon_name: "search", title: "Nenhuma vaga no histórico ainda",
+                 message: "As vagas entram aqui quando um run termina a análise." %>
+    <% else %>
+      <%= render "list", postings: @postings %>
+    <% end %>
+  </section>
+</div>

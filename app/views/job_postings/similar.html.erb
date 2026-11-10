@@ -1,0 +1,23 @@
+<% content_for :title, "Parecidas: #{@posting.title.truncate(30)}" %>
+
+<div class="page">
+  <%= link_to job_postings_path, class: "back-link" do %><%= icon("arrow-left") %> Histórico de vagas<% end %>
+
+  <%= render "shared/page_header", title: "Vagas parecidas",
+             description: "Pelo significado do cargo, da stack, do local e da modalidade (embeddings + pgvector)." %>
+
+  <section class="card card--muted">
+    <p class="eyebrow">Vaga de referência</p>
+    <p class="similar-reference"><%= job_title_link(@posting.to_job) %></p>
+    <p class="table__meta"><%= [ @posting.company, @posting.location, @posting.source ].compact_blank.join(" · ") %></p>
+  </section>
+
+  <section class="card">
+    <% if @postings.empty? %>
+      <%= render "shared/empty_state", icon_name: "layers", title: "Nada parecido ainda",
+                 message: "Faça mais buscas: quanto maior o histórico, melhores as comparações." %>
+    <% else %>
+      <%= render "list", postings: @postings %>
+    <% end %>
+  </section>
+</div>

@@ -37,6 +37,10 @@ module JobAgent
     # "false", fica só a régua fixa da AnalyzeJobsTool (sem custo de LLM).
     config.x.llm_job_evaluation = ENV.fetch("LLM_JOB_EVALUATION", "true") == "true"
 
+    # RAG (pgvector): embeddings das vagas e das marcações 👍/👎, busca
+    # semântica, "vagas parecidas" e memória de preferências por similaridade.
+    config.x.rag_enabled = ENV.fetch("RAG_ENABLED", "true") == "true"
+
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Aplicação web (Hotwire) + jobs. Era api_only até o front ser criado.

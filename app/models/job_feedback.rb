@@ -1,6 +1,8 @@
 # O que o usuário achou de uma vaga: "like" (gostei) ou "dislike"
 # (descartei). Alimenta a memória de preferências do avaliador (LLM).
 class JobFeedback < ApplicationRecord
+  has_neighbors :embedding
+
   VERDICTS = %w[like dislike].freeze
   # Quantas marcações de cada tipo vão para o prompt do avaliador.
   MAX_IN_MEMORY = 10

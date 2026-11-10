@@ -27,5 +27,15 @@ RSpec.describe JobSearch::ToolFactory do
       expect(evaluator).to be_a(JobSearch::JobEvaluator)
       expect(evaluator.instance_variable_get(:@llm_client)).to be_a(JobSearch::MeteredLlmClient)
     end
+
+    it "adds the vector index and the RAG memory when RAG is on" do
+      allow(Rails.configuration.x).to receive_messages(llm_job_evaluation: true, rag_enabled: true)
+      allow(OpenAI::Client).to receive(:new).and_return(double("OpenAI::Client"))
+
+      tool = analyze_tool(JobSearch::Container.new)
+
+      expect(tool.instance_variable_get(:@indexer)).to be_a(JobSearch::JobIndex)
+      expect(tool.instance_variable_get(:@evaluator).instance_variable_get(:@memory)).to be_a(JobSearch::PreferenceMemory)
+    end
   end
 end

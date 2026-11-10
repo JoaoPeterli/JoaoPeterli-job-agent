@@ -10,7 +10,9 @@ class JobFeedbacksController < ApplicationController
     job = Array(run.result["output"]).find { |item| item.is_a?(Hash) && JobFeedback.key_for(item) == params.require(:job_key) }
     return head(:not_found) unless job
 
-    JobFeedback.toggle!(job, verdict: verdict, run_id: run.id)
+    feedback = JobFeedback.toggle!(job, verdict: verdict, run_id: run.id)
+    # Embedding da marcação (RAG) fora do clique; trocar 👍↔👎 mantém o vetor.
+    JobSearch::EmbedFeedbackJob.perform_later(feedback.id) if feedback && feedback.embedding.nil?
     redirect_to run_path(run, anchor: "vagas")
   end
 

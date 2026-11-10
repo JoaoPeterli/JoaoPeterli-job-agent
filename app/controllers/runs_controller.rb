@@ -32,7 +32,9 @@ class RunsController < ApplicationController
   def show
     @run = AgentRun.find(params[:id])
     jobs = Array(@run.result["output"]).select { |job| job.is_a?(Hash) }
-    @feedbacks = JobFeedback.where(job_key: jobs.map { |job| JobFeedback.key_for(job) }).index_by(&:job_key)
+    keys = jobs.map { |job| JobFeedback.key_for(job) }
+    @feedbacks = JobFeedback.where(job_key: keys).index_by(&:job_key)
+    @indexed_keys = JobPosting.embedded.where(job_key: keys).pluck(:job_key).to_set
     # Descartadas vão para o fim; o resto, pela nota.
     @jobs = jobs.each_with_index.sort_by do |job, index|
       [ @feedbacks[JobFeedback.key_for(job)]&.verdict == "dislike" ? 1 : 0, -job["score"].to_i, index ]

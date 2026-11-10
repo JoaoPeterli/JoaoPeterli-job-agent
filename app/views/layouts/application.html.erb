@@ -44,6 +44,9 @@
           <%= link_to new_run_path, class: "nav-item", aria: { current: current_page?(new_run_path) ? "page" : nil } do %>
             <%= icon("sparkles") %><span>Nova busca</span>
           <% end %>
+          <%= link_to job_postings_path, class: "nav-item", aria: { current: current_page?(job_postings_path) || current_page?(similar_job_postings_path) ? "page" : nil } do %>
+            <%= icon("search") %><span>Histórico de vagas</span>
+          <% end %>
           <%= link_to edit_profile_path, class: "nav-item", aria: { current: current_page?(edit_profile_path) ? "page" : nil } do %>
             <%= icon("user") %><span>Meu perfil</span>
           <% end %>

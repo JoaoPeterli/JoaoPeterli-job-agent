@@ -5,6 +5,9 @@ Rails.application.routes.draw do
 
   resource :profile, only: %i[edit update]
   resources :job_feedbacks, only: %i[create destroy]
+  resources :job_postings, only: :index, path: "vagas" do
+    get :similar, on: :collection, path: "parecidas"
+  end
 
   resources :runs, only: %i[index new create show destroy] do
     member do

@@ -179,3 +179,22 @@ namespace :job_search do
     puts "Run #{run.id}: #{run.status}#{' (cancelamento pedido; para no próximo checkpoint)' if run.status == 'running'}"
   end
 end
+
+namespace :job_search do
+  desc "Indexa (embeddings, RAG) as vagas de todos os runs e as marcações 👍/👎 sem vetor. " \
+       "Gasta tokens de embedding (centavos). Uso: bin/rails job_search:index_history"
+  task index_history: :environment do
+    index = JobSearch::JobIndex.default
+
+    AgentRun.kept.where(status: AgentRun::FINAL_STATUSES).order(:created_at).find_each do |run|
+      jobs = Array(run.result["output"]).select { |job| job.is_a?(Hash) }
+      next if jobs.empty?
+
+      index.index(jobs, run_id: run.id)
+      puts "run #{run.id}: #{jobs.size} vagas"
+    end
+
+    JobFeedback.where(embedding: nil).find_each { |feedback| index.embed_feedback(feedback) }
+    puts "Histórico: #{JobPosting.embedded.count} vagas indexadas, #{JobFeedback.where.not(embedding: nil).count} marcações com vetor."
+  end
+end
