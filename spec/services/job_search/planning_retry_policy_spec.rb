@@ -186,5 +186,79 @@ describe "retryable planning errors" do
       "max_attempts must be positive"
     )
   end
+
+  describe "planning history" do
+    let(:objective) { "Encontrar vagas Ruby" }
+
+    def rejected(message)
+      JobSearch::PlanningError.new(
+        "Invalid LLM plan",
+        cause: JobSearch::PlanValidationError.new(message)
+      )
+    end
+
+    it "records every rejected plan in the memory" do
+      memory = JobSearch::ShortTermMemory.new
+      policy = described_class.new(max_attempts: 3)
+      errors = [ rejected("Unknown tool: foo"), rejected("Cycle detected") ]
+
+      policy.call(objective: objective, memory: memory) do |_context|
+        raise errors.shift if errors.any?
+
+        :valid_plan
+      end
+
+      expect(memory.of_kind(:plan_rejected).map(&:content)).to eq([
+        "Attempt 1: Unknown tool: foo",
+        "Attempt 2: Cycle detected"
+      ])
+    end
+
+    it "gives each attempt the rejections before the latest one" do
+      policy = described_class.new(max_attempts: 3)
+      errors = [ rejected("Unknown tool: foo"), rejected("Cycle detected") ]
+      contexts = []
+
+      policy.call(objective: objective) do |context|
+        contexts << context
+        raise errors.shift if errors.any?
+
+        :valid_plan
+      end
+
+      expect(contexts.map(&:history)).to eq([
+        [],
+        [],
+        [ "Attempt 1: Unknown tool: foo" ]
+      ])
+      expect(contexts.last.previous_error.cause.message).to eq("Cycle detected")
+    end
+
+    it "records the final rejection even when attempts are exhausted" do
+      memory = JobSearch::ShortTermMemory.new
+      policy = described_class.new(max_attempts: 1)
+
+      expect do
+        policy.call(objective: objective, memory: memory) do |_context|
+          raise rejected("Unknown tool: foo")
+        end
+      end.to raise_error(JobSearch::PlanningError)
+
+      expect(memory.of_kind(:plan_rejected).size).to eq(1)
+    end
+
+    it "does not record non-retryable errors as rejected plans" do
+      memory = JobSearch::ShortTermMemory.new
+      policy = described_class.new(max_attempts: 3)
+
+      expect do
+        policy.call(objective: objective, memory: memory) do |_context|
+          raise JobSearch::PlanningError.new("LLM down", retryable: false)
+        end
+      end.to raise_error(JobSearch::PlanningError)
+
+      expect(memory).to be_empty
+    end
+  end
 end
 end

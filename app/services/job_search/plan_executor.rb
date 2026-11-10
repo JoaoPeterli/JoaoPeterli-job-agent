@@ -12,6 +12,11 @@ module JobSearch
       @execution_budget.start!
       @execution_budget.validate!(plan: plan)
 
+      state.memory.record(
+        :plan_started,
+        "#{plan.steps.length} steps: #{plan.steps.map(&:name).join(', ')}"
+      )
+
       completed_steps = []
 
       while completed_steps.length < plan.steps.length
@@ -63,11 +68,16 @@ module JobSearch
 
       state.add_observation(step.name, result)
       state.complete_step!(step.name)
+      state.memory.record(:step_completed, "#{step.name} (#{action.tool})")
 
     rescue StandardError => error
       state.fail_step!(
         step.name,
         error: error
+      )
+      state.memory.record(
+        :step_failed,
+        "#{step.name} (#{step.action.tool}): #{error.class}: #{error.message}"
       )
       raise
     end

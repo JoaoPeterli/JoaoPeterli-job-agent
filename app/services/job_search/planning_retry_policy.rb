@@ -1,4 +1,3 @@
-
 module JobSearch
   class PlanningRetryPolicy
     def initialize(max_attempts:)
@@ -7,9 +6,13 @@ module JobSearch
       @max_attempts = max_attempts
     end
 
-    def call(objective:)
+    # memory: memória de curto prazo da execução. Cada plano rejeitado é
+    # registrado nela, e as tentativas seguintes recebem o histórico para
+    # não repetir erros que já foram corrigidos antes.
+    def call(objective:, memory: ShortTermMemory.new)
       attempt = 0
       previous_error = nil
+      history = []
 
       begin
         attempt += 1
@@ -17,17 +20,35 @@ module JobSearch
         context = PlanningContext.new(
           objective: objective,
           attempt: attempt,
-          previous_error: previous_error
+          previous_error: previous_error,
+          history: history.dup
         )
 
         yield(context)
       rescue PlanningError => error
         raise unless error.retryable?
+
+        memory.record(
+          :plan_rejected,
+          "Attempt #{attempt}: #{rejection_reason(error)}"
+        )
+
         raise if attempt >= @max_attempts
 
+        history << rejection_entry(previous_error, attempt - 1) if previous_error
         previous_error = error
         retry
       end
+    end
+
+    private
+
+    def rejection_reason(error)
+      error.cause&.message || error.message
+    end
+
+    def rejection_entry(error, attempt)
+      "Attempt #{attempt}: #{rejection_reason(error)}"
     end
   end
 end

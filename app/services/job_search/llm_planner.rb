@@ -6,6 +6,7 @@ module JobSearch
     DEFAULT_MAX_INPUT_TOKENS = 8_000
     MAX_OBJECTIVE_TOKENS = 500
     MAX_REPAIR_TOKENS = 300
+    MAX_HISTORY_TOKENS = 400
 
     def initialize(
       llm_client:,
@@ -86,6 +87,12 @@ module JobSearch
           max_tokens: MAX_OBJECTIVE_TOKENS
         ),
         PromptSection.new(
+          name: :history,
+          content: history_instructions(context),
+          required: false,
+          max_tokens: MAX_HISTORY_TOKENS
+        ),
+        PromptSection.new(
           name: :repair,
           content: repair_instructions(context),
           required: false,
@@ -128,6 +135,17 @@ module JobSearch
         - If a step references another step, it must also depend on that step.
         - Do not create cyclic dependencies.
       RULES
+    end
+
+    def history_instructions(context)
+      return "" if context.history.empty?
+
+      lines = context.history.map { |entry| "- #{entry}" }
+
+      <<~HISTORY
+        Earlier plans in this run were also rejected. Do not repeat these mistakes:
+        #{lines.join("\n")}
+      HISTORY
     end
 
     def repair_instructions(context)

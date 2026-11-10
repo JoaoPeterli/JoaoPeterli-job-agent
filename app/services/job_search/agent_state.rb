@@ -2,10 +2,15 @@ require "securerandom"
 
 module JobSearch
   class AgentState
-    attr_reader :objective, :run_id, :status, :actions, :step_states
+    attr_reader :objective, :run_id, :status, :actions, :step_states, :memory
 
-    def initialize(objective:, run_id: SecureRandom.uuid)
+    def initialize(
+      objective:,
+      run_id: SecureRandom.uuid,
+      memory: ShortTermMemory.new
+    )
       @objective = objective
+      @memory = memory
       @run_id = run_id
       @status = :running
       @actions = []

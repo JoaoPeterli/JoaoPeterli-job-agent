@@ -426,5 +426,37 @@ RSpec.describe JobSearch::PlanExecutor do
       expect(state.status).to eq(:completed)
       expect(budget.tool_calls).to eq(0)
     end
+
+    describe "short-term memory" do
+      it "records the plan and each completed step" do
+        plan_executor.execute(plan: single_step_plan, state: state)
+
+        expect(state.memory.entries.map(&:to_s)).to eq([
+          "[plan_started] 1 steps: search",
+          "[step_completed] search (search_jobs)"
+        ])
+      end
+
+      it "records a failed step with its error" do
+        allow(executor).to receive(:execute).and_raise(IOError, "API down")
+
+        expect do
+          plan_executor.execute(plan: single_step_plan, state: state)
+        end.to raise_error(IOError)
+
+        expect(state.memory.of_kind(:step_failed).map(&:content)).to eq([
+          "search (search_jobs): IOError: API down"
+        ])
+      end
+
+      it "does not store raw observations in memory" do
+        allow(executor).to receive(:execute)
+          .and_return([ { title: "Senior Ruby Engineer at Secret Corp" } ])
+
+        plan_executor.execute(plan: single_step_plan, state: state)
+
+        expect(state.memory.entries.map(&:content).join).not_to include("Secret Corp")
+      end
+    end
   end
 end

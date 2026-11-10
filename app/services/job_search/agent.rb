@@ -20,7 +20,8 @@ module JobSearch
       )
 
       plan = @planning_retry_policy.call(
-        objective: objective
+        objective: objective,
+        memory: state.memory
       ) do |context|
         @planner.plan(context: context)
       end

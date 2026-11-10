@@ -170,5 +170,31 @@ RSpec.describe JobSearch::Agent do
         )
         .once
     end
+
+    it "shares the run memory between planning and execution" do
+      plan = instance_double(JobSearch::Plan)
+      attempts = 0
+
+      allow(planner).to receive(:plan) do |context:|
+        attempts += 1
+        next plan if attempts > 1
+
+        raise JobSearch::PlanningError.new(
+          "Invalid LLM plan",
+          cause: JobSearch::PlanValidationError.new("Unknown tool: foo")
+        )
+      end
+
+      executed_state = nil
+      allow(plan_executor).to receive(:execute) do |plan:, state:|
+        executed_state = state
+      end
+
+      state = agent.run
+
+      expect(executed_state).to be(state)
+      expect(state.memory.of_kind(:plan_rejected).map(&:content))
+        .to eq([ "Attempt 1: Unknown tool: foo" ])
+    end
   end
 end

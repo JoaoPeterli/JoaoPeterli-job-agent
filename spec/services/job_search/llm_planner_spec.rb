@@ -381,6 +381,66 @@ RSpec.describe JobSearch::LlmPlanner do
     end
   end
 
+  describe "planning history" do
+    let(:registry) { JobSearch::ToolRegistry.new }
+    let(:llm_client) { instance_double(JobSearch::LlmClient) }
+    let(:planner) { described_class.new(llm_client: llm_client, registry: registry) }
+
+    def rejected(message)
+      JobSearch::PlanningError.new(
+        "Invalid LLM plan",
+        cause: JobSearch::PlanValidationError.new(message)
+      )
+    end
+
+    before do
+      registry.register(:search_jobs, JobSearch::SearchJobsTool)
+      allow(llm_client).to receive(:complete).and_return(JSON.generate(steps: []))
+    end
+
+    it "omits the history section when there is no earlier rejection" do
+      planner.plan(context: JobSearch::PlanningContext.new(objective: "Find Ruby jobs"))
+
+      expect(llm_client).to have_received(:complete) do |prompt:|
+        expect(prompt).not_to include("Earlier plans in this run")
+      end
+    end
+
+    it "lists earlier rejections so the LLM does not repeat them" do
+      context = JobSearch::PlanningContext.new(
+        objective: "Find Ruby jobs",
+        attempt: 3,
+        previous_error: rejected("Cycle detected"),
+        history: [ "Attempt 1: Unknown tool: foo" ]
+      )
+
+      planner.plan(context: context)
+
+      expect(llm_client).to have_received(:complete) do |prompt:|
+        expect(prompt).to include("Earlier plans in this run were also rejected")
+        expect(prompt).to include("- Attempt 1: Unknown tool: foo")
+        expect(prompt).to include("Reason:\nCycle detected")
+        expect(prompt.index("Earlier plans")).to be < prompt.index("This is planning attempt 3")
+      end
+    end
+
+    it "keeps the history inside its token limit" do
+      history = Array.new(50) { |i| "Attempt #{i}: #{'x' * 400}" }
+      context = JobSearch::PlanningContext.new(
+        objective: "Find Ruby jobs", attempt: 3,
+        previous_error: rejected("Cycle detected"), history: history
+      )
+
+      planner.plan(context: context)
+
+      expect(llm_client).to have_received(:complete) do |prompt:|
+        history_text = prompt[prompt.index("Earlier plans")...prompt.index("This is planning attempt")]
+        expect(JobSearch::TokenEstimator.new.count(history_text))
+          .to be <= described_class::MAX_HISTORY_TOKENS + 1
+      end
+    end
+  end
+
   describe "malformed observation references" do
     let(:registry) do
       JobSearch::ToolRegistry.new.tap do |tool_registry|
