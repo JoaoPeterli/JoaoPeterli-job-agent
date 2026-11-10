@@ -4,12 +4,14 @@ module JobSearch
   # primeiro. Uma fonte fora do ar não derruba a busca: vira um aviso no
   # log. Só quando TODAS falham a busca falha (erro transitório).
   class JobAggregator
-    DEFAULT_LIMIT = 25
+    # Até 10 vagas por fonte x 11 fontes. O LLM nunca vê os valores (só a
+    # referência), então mais vagas não custam tokens.
+    DEFAULT_LIMIT = 100
     # Issues do GitHub e alguns feeds mantêm anúncios antigos: vaga com mais
     # de MAX_AGE provavelmente já foi preenchida. Sem data, a vaga fica.
     MAX_AGE = 60.days
     # Nenhuma fonte ocupa a lista sozinha (fontes grandes publicam muito).
-    MAX_PER_SOURCE = 8
+    MAX_PER_SOURCE = 10
     STOPWORDS = %w[on de da do e and the with com em para for developer dev desenvolvedor].freeze
 
     def initialize(sources:, runner: ParallelRunner.new(max_parallel: 6),

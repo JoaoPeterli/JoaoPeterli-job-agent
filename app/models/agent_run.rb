@@ -19,18 +19,28 @@ class AgentRun < ApplicationRecord
     "failed" => %w[failed stopped_early cancelled]
   }.freeze
 
+  # Soft delete: "deleted" mostra a lixeira; os outros filtros, só os ativos.
+  DELETED_FILTER = "deleted".freeze
+
   scope :recent, -> { order(created_at: :desc) }
-  scope :filtered, ->(filter) { FILTERS.key?(filter) ? where(status: FILTERS.fetch(filter)) : all }
+  scope :kept, -> { where(deleted_at: nil) }
+  scope :deleted, -> { where.not(deleted_at: nil) }
+  scope :filtered, lambda { |filter|
+    next deleted if filter == DELETED_FILTER
+
+    FILTERS.key?(filter) ? kept.where(status: FILTERS.fetch(filter)) : kept
+  }
 
   # Indicadores do painel, calculados no banco (métricas ficam no jsonb).
   def self.dashboard_stats
-    finished = where(status: FINAL_STATUSES)
+    runs = kept
+    finished = runs.where(status: FINAL_STATUSES)
 
     {
-      total: count,
-      active: where(status: FILTERS.fetch("active")).count,
+      total: runs.count,
+      active: runs.where(status: FILTERS.fetch("active")).count,
       success_rate: success_rate(finished.count, finished.where(status: "completed").count),
-      total_tokens: sum(Arel.sql("COALESCE((metrics->>'total_tokens')::bigint, 0)")).to_i,
+      total_tokens: runs.sum(Arel.sql("COALESCE((metrics->>'total_tokens')::bigint, 0)")).to_i,
       avg_duration_ms: finished.average(Arel.sql("(metrics->>'duration_ms')::numeric"))&.to_f
     }
   end
@@ -46,5 +56,9 @@ class AgentRun < ApplicationRecord
 
   def cancel_requested?
     cancel_requested_at.present?
+  end
+
+  def deleted?
+    deleted_at.present?
   end
 end

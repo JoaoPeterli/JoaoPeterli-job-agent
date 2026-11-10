@@ -28,7 +28,7 @@ RSpec.describe "Agent end to end" do
     expect(llm_client.calls).to eq(1)
     expect(state.step_statuses).to eq(search: :completed, profile: :completed, analyze: :completed)
     expect(state.observation_for(:analyze)).to eq([
-      { title: "Senior Ruby Developer", company: "Example Company", remote: true, score: 40,
+      { title: "Senior Ruby Developer", company: "Example Company", remote: true, score: 60,
         url: nil, source: "Exemplo", location: nil, published_at: nil, tags: [ "Ruby" ] }
     ])
   end

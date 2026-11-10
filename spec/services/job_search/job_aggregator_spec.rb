@@ -64,7 +64,7 @@ RSpec.describe JobSearch::JobAggregator do
   end
 
   it "caps each source so a big one does not fill the list alone" do
-    big = Array.new(10) { |i| job("Ruby #{i}", hours_ago: i + 1) }
+    big = Array.new(12) { |i| job("Ruby #{i}", hours_ago: i + 1) }
     small = JobSearch::JobListing.build(title: "Ruby Small", url: "https://example.com/s", source: "Outra",
                                         published_at: 30.hours.ago)
 

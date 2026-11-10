@@ -1,4 +1,5 @@
 <% content_for :title, "Nova busca" %>
+<% content_for :head, tag.meta(name: "turbo-cache-control", content: "no-cache") %>
 
 <div class="page">
   <%= render "shared/page_header", title: "Nova busca",

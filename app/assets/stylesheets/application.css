@@ -519,6 +519,7 @@ fieldset.field > legend { margin-bottom: 0.5rem; }
 }
 .alert .icon { margin-top: 0.125rem; }
 .alert--info { background: var(--info-soft); color: var(--info); border-color: color-mix(in oklch, var(--info) 25%, transparent); }
+.alert--warning { background: var(--warning-soft); color: var(--warning); border-color: color-mix(in oklch, var(--warning) 25%, transparent); }
 .alert--danger { background: var(--danger-soft); color: var(--danger); border-color: color-mix(in oklch, var(--danger) 25%, transparent); }
 .alert p { color: var(--foreground); }
 
@@ -669,4 +670,52 @@ fieldset.field > legend { margin-bottom: 0.5rem; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Perfil ---------- */
+
+.choice-grid--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.choice__body--compact { padding: 0.75rem 1rem; text-align: center; }
+
+.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.375rem; }
+.chip {
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.switch { display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; }
+.switch__input { position: absolute; opacity: 0; pointer-events: none; }
+.switch__track {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 1.25rem;
+  margin-top: 0.0625rem;
+  border-radius: 999px;
+  background: var(--input);
+  transition: background-color 0.15s;
+}
+.switch__track::after {
+  content: "";
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: var(--background);
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.15s;
+}
+.switch__input:checked + .switch__track { background: var(--primary); }
+.switch__input:checked + .switch__track::after { transform: translateX(1rem); }
+.switch__input:focus-visible + .switch__track { box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent); }
+.switch__hint { display: block; margin-top: 0.25rem; }
+
+@media (max-width: 768px) {
+  .choice-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

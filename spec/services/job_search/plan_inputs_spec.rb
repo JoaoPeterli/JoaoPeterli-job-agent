@@ -40,8 +40,8 @@ RSpec.describe "Plans and inputs from other agents" do
 
       JobSearch::Container.new.plan_executor.execute(plan: plan, state: state)
 
-      expect(state.observation_for(:analyze)).to eq([ jobs.first.merge(score: 40) ])
-      expect(state.observations_from_tool(:analyze_jobs)).to eq([ [ jobs.first.merge(score: 40) ] ])
+      expect(state.observation_for(:analyze)).to eq([ jobs.first.merge(score: 60) ])
+      expect(state.observations_from_tool(:analyze_jobs)).to eq([ [ jobs.first.merge(score: 60) ] ])
     end
   end
 

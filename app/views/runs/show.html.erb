@@ -16,8 +16,29 @@
           <%= icon("ban") %> Cancelar
         <% end %>
       <% end %>
+      <%= button_to redo_run_path(@run), class: "button button--outline",
+                    form: { data: { turbo_confirm: "Refazer esta busca? Cria um run novo e chama a OpenAI de novo." } } do %>
+        <%= icon("rotate-ccw") %> Refazer busca
+      <% end %>
+      <% if @run.deleted? %>
+        <%= button_to restore_run_path(@run), class: "button button--outline" do %>
+          <%= icon("undo") %> Restaurar
+        <% end %>
+      <% elsif @run.finished? %>
+        <%= button_to run_path(@run), method: :delete, class: "button button--destructive-outline",
+                      form: { data: { turbo_confirm: "Mover este run para a lixeira? Dá para restaurar depois." } } do %>
+          <%= icon("trash") %> Excluir
+        <% end %>
+      <% end %>
     </div>
   </div>
+
+  <% if @run.deleted? %>
+    <div class="alert alert--warning" role="status">
+      <%= icon("trash") %>
+      <p>Este run está na lixeira desde <%= l(@run.deleted_at, format: "%d/%m/%Y %H:%M") %>. Ele não aparece no painel nem conta nos indicadores.</p>
+    </div>
+  <% end %>
 
   <% if run_active?(@run) %>
     <div class="alert alert--info" role="status">

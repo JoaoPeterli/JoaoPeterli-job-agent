@@ -15,6 +15,7 @@
       } catch (e) {}
     </script>
     <%= turbo_refreshes_with method: :morph, scroll: :preserve %>
+    <%= yield :head %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
@@ -42,6 +43,9 @@
           <% end %>
           <%= link_to new_run_path, class: "nav-item", aria: { current: current_page?(new_run_path) ? "page" : nil } do %>
             <%= icon("sparkles") %><span>Nova busca</span>
+          <% end %>
+          <%= link_to edit_profile_path, class: "nav-item", aria: { current: current_page?(edit_profile_path) ? "page" : nil } do %>
+            <%= icon("user") %><span>Meu perfil</span>
           <% end %>
         </nav>
 

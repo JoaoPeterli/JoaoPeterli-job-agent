@@ -3,7 +3,13 @@ Rails.application.routes.draw do
 
   root "runs#index"
 
-  resources :runs, only: %i[index new create show] do
-    post :cancel, on: :member
+  resource :profile, only: %i[edit update]
+
+  resources :runs, only: %i[index new create show destroy] do
+    member do
+      post :cancel
+      post :redo
+      post :restore
+    end
   end
 end

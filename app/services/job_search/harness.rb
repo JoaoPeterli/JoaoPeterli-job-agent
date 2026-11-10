@@ -52,7 +52,7 @@ module JobSearch
       end
 
       if run.mode != mode.to_s || run.objective != objective
-        raise ArgumentError, "Idempotency key #{idempotency_key} was already used for a different request"
+        raise IdempotencyKeyConflict, "Idempotency key #{idempotency_key} was already used for a different request"
       end
 
       @enqueue.call(run) if run.previously_new_record?
@@ -65,6 +65,28 @@ module JobSearch
       # Ainda na fila: cancela na hora. Rodando: para no próximo checkpoint.
       AgentRun.where(id: run_id, status: "queued").update_all(status: "cancelled", finished_at: now, updated_at: now)
       AgentRun.find(run_id)
+    end
+
+    # Soft delete: só runs terminados (um run ativo precisa ser cancelado
+    # antes). O run some das listas, mas dados, memória e auditoria ficam,
+    # e a exclusão entra na cadeia de auditoria do próprio run.
+    def delete(run_id)
+      run = AgentRun.find(run_id)
+      raise ArgumentError, "Cancele o run antes de excluir." unless run.finished?
+      return run if run.deleted?
+
+      run.update!(deleted_at: @clock.call)
+      audit_trail.record(run_id: run.id, event: "run.deleted", outcome: "info")
+      run
+    end
+
+    def restore(run_id)
+      run = AgentRun.find(run_id)
+      return run unless run.deleted?
+
+      run.update!(deleted_at: nil)
+      audit_trail.record(run_id: run.id, event: "run.restored", outcome: "info")
+      run
     end
 
     # Chamado pelo AgentRunJob. Devolve o AgentRun, ou nil se outro
@@ -90,6 +112,10 @@ module JobSearch
     end
 
     private
+
+    def audit_trail
+      @audit_trail ||= AuditTrail.new
+    end
 
     # Claim atômico: um UPDATE condicional decide quem executa. Só um
     # worker consegue mudar queued -> running (ou assumir um lease vencido).

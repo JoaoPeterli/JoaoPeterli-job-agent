@@ -1,15 +1,9 @@
 module JobSearch
+  # Perfil do candidato salvo em "Meu perfil" (CandidateProfile). Sem
+  # perfil salvo, usa o padrão (CandidateProfile::DEFAULTS).
   class CandidateProfileTool
     def call
-      {
-        skills: [
-          "Ruby",
-          "Rails",
-          "AWS"
-        ],
-        seniority: "Senior",
-        remote: true
-      }
+      CandidateProfile.current.to_tool_output
     end
   end
 end

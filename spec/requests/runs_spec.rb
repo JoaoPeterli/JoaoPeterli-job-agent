@@ -205,4 +205,77 @@ RSpec.describe "Runs UI", type: :request do
       expect(response.body).to include("Run cancelado.")
     end
   end
+
+  describe "fresh form and redo" do
+    it "never lets the browser or Turbo cache the form (each form has a new key)" do
+      get new_run_path, headers: auth
+
+      expect(response.headers["Cache-Control"]).to include("no-store")
+      expect(response.body).to include('name="turbo-cache-control" content="no-cache"')
+    end
+
+    it "treats an old form reused for a different search as a new run instead of failing" do
+      old = create_run(objective: "Vagas de Go", mode: "supervisor", idempotency_key: "old-key")
+
+      post runs_path, params: { run: { objective: "Vagas de Ruby", mode: "agent", idempotency_key: "old-key" } }, headers: auth
+
+      run = AgentRun.order(:created_at).last
+      expect(run).not_to eq(old)
+      expect(run).to have_attributes(objective: "Vagas de Ruby", mode: "agent")
+      expect(response).to redirect_to(run_path(run))
+    end
+
+    it "redoes a search as a new run with the same objective and mode" do
+      original = create_run(objective: "Vagas de Elixir", mode: "pipeline", status: "completed")
+
+      expect { post redo_run_path(original), headers: auth }.to change(AgentRun, :count).by(1)
+
+      run = AgentRun.order(:created_at).last
+      expect(run).to have_attributes(objective: "Vagas de Elixir", mode: "pipeline", status: "queued")
+      expect(run.idempotency_key).not_to eq(original.idempotency_key)
+      expect(response).to redirect_to(run_path(run))
+      expect(JobSearch::AgentRunJob).to have_been_enqueued.with(run.id)
+    end
+  end
+
+  describe "soft delete" do
+    it "moves a finished run to the trash, out of the list and the indicators, and audits it" do
+      run = create_run(objective: "Vagas de Cobol", status: "completed", metrics: { "total_tokens" => 999 })
+
+      delete run_path(run), headers: auth
+
+      expect(run.reload).to be_deleted
+      expect(response).to redirect_to(runs_path)
+      expect(JobSearch::AuditTrail.new.events(run.id).map(&:event)).to eq([ "run.deleted" ])
+
+      get root_path, headers: auth
+      expect(response.body).not_to include("Vagas de Cobol")
+      expect(AgentRun.dashboard_stats).to include(total: 0, total_tokens: 0)
+
+      get runs_path(status: "deleted"), headers: auth
+      expect(response.body).to include("Vagas de Cobol")
+    end
+
+    it "restores a deleted run" do
+      run = create_run(status: "completed", deleted_at: Time.current)
+
+      get run_path(run), headers: auth
+      expect(response.body).to include("está na lixeira", "Restaurar")
+
+      post restore_run_path(run), headers: auth
+
+      expect(run.reload).not_to be_deleted
+      expect(JobSearch::AuditTrail.new.events(run.id).map(&:event)).to eq([ "run.restored" ])
+      expect(JobSearch::AuditTrail.new.verify(run.id)).to be_valid
+    end
+
+    it "does not delete an active run (cancel it first)" do
+      run = create_run(status: "running")
+
+      delete run_path(run), headers: auth
+
+      expect(run.reload).not_to be_deleted
+      expect(flash[:alert]).to include("Cancele o run")
+    end
+  end
 end

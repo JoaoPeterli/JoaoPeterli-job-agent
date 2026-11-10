@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_10_150000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_120100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -57,8 +57,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_10_150000) do
     t.datetime "finished_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_agent_runs_on_deleted_at"
     t.index ["idempotency_key"], name: "index_agent_runs_on_idempotency_key", unique: true
     t.index ["status", "locked_until"], name: "index_agent_runs_on_status_and_locked_until"
+  end
+
+  create_table "candidate_profiles", force: :cascade do |t|
+    t.string "skills", default: [], null: false, array: true
+    t.string "seniority", default: "senior", null: false
+    t.boolean "remote", default: true, null: false
+    t.string "location"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "job_search_operations", force: :cascade do |t|

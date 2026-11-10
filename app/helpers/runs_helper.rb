@@ -30,7 +30,8 @@ module RunsHelper
     nil => "Todos",
     "active" => "Em andamento",
     "completed" => "Concluídos",
-    "failed" => "Com problema"
+    "failed" => "Com problema",
+    "deleted" => "Excluídos"
   }.freeze
 
   # Tom visual de cada status (cores do tema em application.css).

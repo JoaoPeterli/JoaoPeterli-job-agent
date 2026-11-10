@@ -41,7 +41,7 @@ RSpec.describe "Multi-agent pipeline (researcher -> analyst)" do
     expect(result.status).to eq(:completed)
     expect(result.output.name).to eq(:ranked_jobs)
     expect(result.output.value.map { |job| [ job[:title], job[:score] ] }).to eq([
-      [ "Senior Ruby Developer", 40 ], [ "Senior Rails Developer", 40 ]
+      [ "Senior Ruby Developer", 60 ], [ "Senior Rails Developer", 60 ]
     ])
     expect(result.agent_run_ids.keys).to eq(%w[researcher analyst])
   end

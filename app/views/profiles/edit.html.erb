@@ -1,0 +1,72 @@
+<% content_for :title, "Meu perfil" %>
+
+<div class="page">
+  <%= render "shared/page_header", title: "Meu perfil",
+             description: "O agente usa estes dados para dar nota de aderência às vagas. Vale para as próximas buscas." %>
+
+  <div class="split">
+    <section class="card">
+      <%= form_with model: @profile, url: profile_path, method: :patch, class: "form", data: { turbo: false } do |f| %>
+        <div class="field">
+          <%= f.label :skills_text, "Skills", class: "label" %>
+          <%= f.text_field :skills_text, class: "input", required: true, autocomplete: "off",
+                           placeholder: "Ruby, Rails, PostgreSQL, AWS", aria: { describedby: "skills-hint" } %>
+          <p class="field__hint" id="skills-hint">
+            Separe por vírgula. Até <%= CandidateProfile::MAX_SKILLS %>. Use os nomes como aparecem nas vagas (ex.: "React", "Node.js").
+          </p>
+          <% if @profile.skills.any? %>
+            <ul class="chips" aria-label="Skills salvas">
+              <% @profile.skills.each do |skill| %><li class="chip"><%= skill %></li><% end %>
+            </ul>
+          <% end %>
+        </div>
+
+        <fieldset class="field">
+          <legend class="label">Senioridade</legend>
+          <div class="choice-grid choice-grid--four">
+            <% CandidateProfile::SENIORITIES.each do |value, label| %>
+              <label class="choice">
+                <%= f.radio_button :seniority, value, class: "choice__input" %>
+                <span class="choice__body choice__body--compact"><span class="choice__name"><%= label %></span></span>
+              </label>
+            <% end %>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label class="switch">
+            <%= f.check_box :remote, class: "switch__input" %>
+            <span class="switch__track" aria-hidden="true"></span>
+            <span>
+              <span class="label">Prefiro vagas remotas</span>
+              <span class="field__hint switch__hint">Desligado: vagas presenciais na sua cidade também ganham pontos.</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="field">
+          <%= f.label :location, "Cidade", class: "label" %>
+          <%= f.text_field :location, class: "input", maxlength: 80, placeholder: "Ex.: São Paulo" %>
+          <p class="field__hint">Opcional. Usada quando você aceita vagas presenciais.</p>
+        </div>
+
+        <div class="form__footer">
+          <%= f.button type: "submit", class: "button button--primary" do %><%= icon("save") %> Salvar perfil<% end %>
+        </div>
+      <% end %>
+    </section>
+
+    <aside class="card card--muted how-it-works">
+      <h2 class="card__title">Como a nota é calculada</h2>
+      <ol class="steps">
+        <li><strong>Skills, até 60 pontos.</strong> 20 por skill sua que aparece no título ou nas tags da vaga.</li>
+        <li><strong>Senioridade, até 20.</strong> 20 se a vaga pede o seu nível, 10 se não cita nível, 0 se pede outro.</li>
+        <li><strong>Modalidade, até 20.</strong> Vaga remota, se você prefere remoto; ou vaga na sua cidade, se aceita presencial.</li>
+      </ol>
+      <p class="callout">
+        <%= icon("sparkles") %>
+        <span>Runs antigos mantêm a nota que tinham. Use "Refazer busca" num run para recalcular com o perfil novo.</span>
+      </p>
+    </aside>
+  </div>
+</div>
