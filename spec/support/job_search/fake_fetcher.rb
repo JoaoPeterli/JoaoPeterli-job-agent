@@ -8,8 +8,8 @@ module JobSearch
       @requests = []
     end
 
-    def get(url, headers: {})
-      @requests << { url: url, headers: headers }
+    def get(url, headers: {}, ttl: nil)
+      @requests << { url: url, headers: headers, ttl: ttl }
       response = @responses.fetch(url) { raise JobSearch::JobSourceError, "unexpected URL #{url}" }
       raise response if response.is_a?(Exception)
 

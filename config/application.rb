@@ -25,8 +25,11 @@ module JobAgent
     config.time_zone = "America/Sao_Paulo"
 
     # Fontes de vagas da ferramenta search_jobs (JobSearch::JobSources).
-    # Ex.: JOB_SOURCES=remote_ok,github_br
-    config.x.job_sources = ENV.fetch("JOB_SOURCES", "remote_ok,arbeitnow,we_work_remotely,github_br")
+    # Ex.: JOB_SOURCES=remote_ok,github_br. O JSearch (LinkedIn, Indeed...)
+    # entra sozinho no padrão quando JSEARCH_API_KEY está definida.
+    default_job_sources = %w[remote_ok arbeitnow we_work_remotely github_br]
+    default_job_sources << "jsearch" if ENV["JSEARCH_API_KEY"].present?
+    config.x.job_sources = ENV.fetch("JOB_SOURCES", default_job_sources.join(","))
                               .split(",").map(&:strip).reject(&:empty?)
     # config.eager_load_paths << Rails.root.join("extras")
 

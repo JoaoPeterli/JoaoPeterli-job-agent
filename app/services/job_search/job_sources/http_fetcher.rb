@@ -18,8 +18,10 @@ module JobSearch
         @read_timeout = read_timeout
       end
 
-      def get(url, headers: {})
-        @cache.fetch("job_sources/#{url}", expires_in: CACHE_TTL) { request(URI(url), headers) }
+      # A chave do cache é só a URL: credenciais vão nos headers, nunca na
+      # URL, e não acabam no cache nem nos logs.
+      def get(url, headers: {}, ttl: CACHE_TTL)
+        @cache.fetch("job_sources/#{url}", expires_in: ttl) { request(URI(url), headers) }
       end
 
       private

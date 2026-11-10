@@ -7,6 +7,7 @@ module JobSearch
       "arbeitnow" => "JobSearch::JobSources::Arbeitnow",
       "we_work_remotely" => "JobSearch::JobSources::WeWorkRemotely",
       "github_br" => "JobSearch::JobSources::GithubIssues",
+      "jsearch" => "JobSearch::JobSources::Jsearch",
       "sample" => "JobSearch::JobSources::Sample"
     }.freeze
 
