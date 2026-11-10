@@ -36,7 +36,7 @@ module JobSearch
     end
 
     def run(run_id:, delegations:)
-      context = { run_id: run_id, messages: [], outputs: {}, agent_run_ids: {}, skipped: [] }
+      context = { run_id: run_id, messages: [], outputs: {}, agent_run_ids: {}, agent_states: {}, skipped: [] }
 
       waves(delegations).each_with_index do |wave, index|
         run_wave(wave, index, context)
@@ -48,7 +48,8 @@ module JobSearch
         output: context[:outputs].values.last,
         outputs: context[:outputs].freeze,
         messages: context[:messages].freeze,
-        agent_run_ids: context[:agent_run_ids].freeze
+        agent_run_ids: context[:agent_run_ids].freeze,
+        agent_states: context[:agent_states].freeze
       )
     end
 
@@ -138,6 +139,7 @@ module JobSearch
       output = job[:profile].output_input(state)
 
       context[:agent_run_ids][delegation.id] = state.run_id
+      context[:agent_states][delegation.id] = state
       context[:outputs][delegation.id] = output
       context[:messages] << message(:result, from: delegation.agent, run_id: context[:run_id],
                                              delegation: delegation.id, agent_run_id: state.run_id,

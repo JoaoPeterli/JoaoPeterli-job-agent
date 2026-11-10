@@ -1,0 +1,4 @@
+routes:
+  "execution planner":
+    - steps:
+        - { name: search, tool: search_jobs, arguments: { technology: Node.js, remote: false }, dependencies: [] }

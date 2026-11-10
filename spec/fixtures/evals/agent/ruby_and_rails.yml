@@ -1,0 +1,5 @@
+routes:
+  "execution planner":
+    - steps:
+        - { name: ruby, tool: search_jobs, arguments: { technology: Ruby, remote: true }, dependencies: [] }
+        - { name: rails, tool: search_jobs, arguments: { technology: Rails, remote: true }, dependencies: [] }

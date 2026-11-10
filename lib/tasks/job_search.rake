@@ -106,3 +106,40 @@ namespace :job_search do
     )
   end
 end
+
+namespace :job_search do
+  desc "Avalia a qualidade com o LLM real (gasta tokens). Uso: bin/rails \"job_search:eval[agent]\" " \
+       "(agent|pipeline|supervisor; JUDGE=1 liga o LLM juiz; UPDATE_BASELINE=1 grava a baseline)"
+  task :eval, [ :target ] => :environment do |_task, args|
+    target = (args[:target].presence || "agent").to_sym
+    dataset = JobSearch::Evals::Dataset.load(Rails.root.join("evals/job_search.yml"))
+    judge = ENV["JUDGE"] == "1" ? JobSearch::Evals::LlmJudge.new(llm_client: JobSearch::Container.new.eval_judge_llm_client) : nil
+
+    report = JobSearch::Evals::Runner.new(
+      target: target,
+      judge: judge,
+      container_factory: ->(_eval_case, event_logger) { JobSearch::Container.new(event_logger: event_logger) }
+    ).run(dataset)
+
+    puts report.to_text
+
+    output = Rails.root.join("tmp/evals/#{dataset.name}_#{target}_#{Time.current.strftime('%Y%m%d%H%M%S')}.json")
+    FileUtils.mkdir_p(output.dirname)
+    File.write(output, JSON.pretty_generate(report.to_h))
+    puts "\nRelatório: #{output.relative_path_from(Rails.root)}"
+
+    baseline_path = Rails.root.join("evals/baselines/#{dataset.name}_#{target}.json")
+
+    if ENV["UPDATE_BASELINE"] == "1"
+      File.write(baseline_path, JSON.pretty_generate(report.to_h))
+      puts "Baseline atualizada: #{baseline_path.relative_path_from(Rails.root)}"
+    elsif File.exist?(baseline_path)
+      regressions = report.regressions(JSON.parse(File.read(baseline_path)), tolerance: ENV.fetch("TOLERANCE", "0").to_f)
+      abort "\nREGRESSÕES:\n- #{regressions.join("\n- ")}" if regressions.any?
+
+      puts "Sem regressões contra a baseline."
+    else
+      puts "Sem baseline para comparar (rode com UPDATE_BASELINE=1 para criar)."
+    end
+  end
+end

@@ -95,6 +95,19 @@ module JobSearch
       )
     end
 
+    # Cliente do LLM juiz dos evals (Aula 44): schema próprio (nota 1-5).
+    def eval_judge_llm_client
+      return @llm_client if @llm_client
+
+      @eval_judge_llm_client ||= OpenAiLlmClient.new(
+        client: openai_client,
+        model: LLM_MODEL,
+        output_schema: Evals::LlmJudge::SCHEMA,
+        schema_name: "job_search_eval_judge",
+        max_output_tokens: 300
+      )
+    end
+
     # Cada PlanExecutor tem o próprio budget, compartilhado apenas com o
     # seu Executor: execuções diferentes não somam tempo nem chamadas.
     def plan_executor(
