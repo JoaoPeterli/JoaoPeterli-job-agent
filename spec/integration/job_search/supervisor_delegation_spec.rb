@@ -143,7 +143,9 @@ RSpec.describe "Supervisor delegation" do
     root = tree(spans).first
     expect(root.first).to eq("supervisor.run")
     expect(root[1]).to eq([ "delegation.attempt", [ "delegation.plan", [ "llm.call" ] ] ])
-    expect(root[2..].map(&:first)).to eq(%w[delegation delegation delegation])
+    expect(root[2..].map(&:first)).to eq(%w[delegation.wave delegation.wave])
+    expect(root[2][1..].map(&:first)).to eq(%w[delegation delegation])
+    expect(root[3][1..].map(&:first)).to eq(%w[delegation])
 
     metrics = events.all.find { |event| event["event"] == "run.metrics" }
     expect(metrics).to include("llm_calls" => 4, "tool_calls" => 4)

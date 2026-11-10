@@ -94,12 +94,12 @@ RSpec.describe "Multi-agent pipeline (researcher -> analyst)" do
     expect(spans.map { |span| span["trace_id"] }.uniq).to eq([ result.run_id ])
     expect(tree(spans)).to eq([
       [ "pipeline.run",
-        [ "delegation", [ "agent.run",
+        [ "delegation.wave", [ "delegation", [ "agent.run",
           [ "planning.attempt", [ "llm.plan", [ "llm.call" ] ] ],
-          [ "plan.execute", [ "step" ], [ "step" ] ] ] ],
-        [ "delegation", [ "agent.run",
+          [ "plan.execute", [ "step" ], [ "step" ] ] ] ] ],
+        [ "delegation.wave", [ "delegation", [ "agent.run",
           [ "planning.attempt", [ "llm.plan", [ "llm.call" ] ] ],
-          [ "plan.execute", [ "step" ], [ "step" ] ] ] ] ]
+          [ "plan.execute", [ "step" ], [ "step" ] ] ] ] ] ]
     ])
     expect(spans.select { |s| s["name"] == "agent.run" }.map { |s| s["agent"] }).to eq(%w[researcher analyst])
 

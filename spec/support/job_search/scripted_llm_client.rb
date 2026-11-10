@@ -18,14 +18,16 @@ module JobSearch
       @responses = responses.dup
       @response_contract = response_contract
       @prompts = []
+      @lock = Mutex.new
     end
 
     def generate(prompt:)
-      @prompts << prompt
+      response = @lock.synchronize do
+        @prompts << prompt
+        raise ScriptExhausted, "No scripted LLM response for call #{@prompts.size}" if @responses.empty?
 
-      raise ScriptExhausted, "No scripted LLM response for call #{@prompts.size}" if @responses.empty?
-
-      response = @responses.shift
+        @responses.shift
+      end
 
       case response
       when Exception then raise response

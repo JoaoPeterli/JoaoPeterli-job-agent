@@ -16,6 +16,12 @@ module JobSearch
     MAX_LLM_TOKENS_PER_RUN = 30_000
     MAX_LLM_COST_USD_PER_RUN = 0.50
 
+    # Delegações independentes rodam em paralelo até este limite. Cada
+    # agente em execução pode segurar uma conexão do banco (memória e
+    # auditoria): mantenha abaixo do pool (config/database.yml, padrão 5)
+    # e abaixo do rate limit do provedor de LLM.
+    MAX_PARALLEL_DELEGATIONS = 3
+
     # llm_client: permite trocar o LLM (ex.: cliente roteirizado nos testes
     # de integração) mantendo todo o resto da montagem real.
     #
@@ -80,7 +86,8 @@ module JobSearch
           tracer: tracer
         ),
         executor: DelegationExecutor.new(
-          agent_factory: self, profiles: team, tracer: tracer, audit_trail: audit_trail
+          agent_factory: self, profiles: team, tracer: tracer, audit_trail: audit_trail,
+          max_parallel: MAX_PARALLEL_DELEGATIONS
         ),
         planning_retry_policy: planning_retry_policy,
         tracer: tracer,

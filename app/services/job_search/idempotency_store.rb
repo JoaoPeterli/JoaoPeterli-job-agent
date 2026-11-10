@@ -1,11 +1,36 @@
+require "monitor"
+
 require "securerandom"
 
 module JobSearch
   # Store de idempotência em memória, com a mesma semântica de
   # PostgresIdempotencyStore (usado em testes e no Container local).
   #
-  # Não é thread-safe: para múltiplos workers use o store do PostgreSQL.
+  # Thread-safe dentro de um processo (agentes em paralelo compartilham
+  # este store para não repetir efeitos colaterais): cada método público
+  # roda sob um Monitor. Entre processos, use o store do PostgreSQL.
   class IdempotencyStore
+    # Envolve os métodos públicos num Monitor (reentrante: acquire chama
+    # acquire_lease).
+    module Locking
+      PUBLIC_METHODS = %i[
+        acquire acquire_lease renew valid? release complete
+        completed? completed_result mark_uncertain reconcile_completed
+      ].freeze
+
+      def initialize(...)
+        @monitor = Monitor.new
+        super
+      end
+
+      PUBLIC_METHODS.each do |name|
+        define_method(name) do |*args, **kwargs, &block|
+          @monitor.synchronize { super(*args, **kwargs, &block) }
+        end
+      end
+    end
+
+    prepend Locking
     def initialize(ttl_seconds: 30, clock: Clock.new)
       raise ArgumentError, "TTL must be positive" unless ttl_seconds.positive?
 

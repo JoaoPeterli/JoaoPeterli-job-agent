@@ -15,6 +15,9 @@ module JobSearch
   #
   # details são metadados (ferramenta, fingerprint, classe de erro); chaves
   # que parecem segredos são filtradas antes de gravar e de calcular o hash.
+  #
+  # Thread-safe: #record é serializado por um Mutex (seq + digest + insert
+  # precisam ser atômicos). Entre processos, quem garante é o índice único.
   class AuditTrail
     VerificationResult = Data.define(:valid, :events, :broken_at_seq, :reason) do
       def valid? = valid
@@ -23,27 +26,11 @@ module JobSearch
     def initialize(clock: -> { Time.current })
       @clock = clock
       @heads = {}
+      @lock = Mutex.new
     end
 
     def record(run_id:, event:, outcome:, details: {})
-      seq, prev_digest = next_link(run_id)
-      attributes = {
-        run_id: run_id.to_s,
-        seq: seq,
-        event: event.to_s,
-        outcome: outcome.to_s,
-        details: canonical(Observability::SensitiveDataFilter.call(details)),
-        prev_digest: prev_digest,
-        created_at: @clock.call.utc.floor(6)
-      }
-
-      record = AgentAuditEvent.create!(**attributes, digest: self.class.digest_for(attributes))
-      @heads[run_id.to_s] = [ record.seq, record.digest ]
-      record
-    rescue ActiveRecord::RecordNotUnique
-      # Outro processo gravou este seq: o cache local estava velho.
-      @heads.delete(run_id.to_s)
-      raise
+      @lock.synchronize { append(run_id, event, outcome, details) }
     end
 
     def events(run_id)
@@ -93,6 +80,27 @@ module JobSearch
     end
 
     private
+
+    def append(run_id, event, outcome, details)
+      seq, prev_digest = next_link(run_id)
+      attributes = {
+        run_id: run_id.to_s,
+        seq: seq,
+        event: event.to_s,
+        outcome: outcome.to_s,
+        details: canonical(Observability::SensitiveDataFilter.call(details)),
+        prev_digest: prev_digest,
+        created_at: @clock.call.utc.floor(6)
+      }
+
+      record = AgentAuditEvent.create!(**attributes, digest: self.class.digest_for(attributes))
+      @heads[run_id.to_s] = [ record.seq, record.digest ]
+      record
+    rescue ActiveRecord::RecordNotUnique
+      # Outro processo gravou este seq: o cache local estava velho.
+      @heads.delete(run_id.to_s)
+      raise
+    end
 
     def canonical(details)
       self.class.canonicalize(details || {})

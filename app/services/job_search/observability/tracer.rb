@@ -17,8 +17,10 @@ module JobSearch
     # terminado (ex.: RunMetrics). Uma falha no listener é registrada e
     # ignorada: métrica nunca derruba um run.
     #
-    # Um Tracer pertence a um único run e não é thread-safe: o Container
-    # cria um novo para cada agente.
+    # Um Tracer pertence a um único run (ou time de agentes). É seguro
+    # entre threads: cada thread tem a própria pilha de spans, e um
+    # worker usa #attach para pendurar os spans dele no span do
+    # coordinador que o disparou (Aula 43).
     class Tracer
       class Span
         attr_reader :trace_id, :span_id, :parent_span_id, :name, :attributes
@@ -47,11 +49,27 @@ module JobSearch
         @listeners = listeners
         @clock = clock
         @id_generator = id_generator
-        @stack = []
+        @stacks = {}
+        @lock = Mutex.new
       end
 
       def current_span
-        @stack.last
+        stack.last
+      end
+
+      # Roda o bloco com `parent` como span corrente desta thread, sem
+      # emiti-lo de novo: é o elo entre o span do coordenador e os spans
+      # criados dentro de uma thread worker.
+      def attach(parent)
+        return yield if parent.nil? || current_span.equal?(parent)
+
+        stack.push(parent)
+        begin
+          yield
+        ensure
+          stack.pop
+          release_stack
+        end
       end
 
       # trace_id só é usado no span raiz; spans filhos herdam o do pai.
@@ -65,7 +83,7 @@ module JobSearch
           attributes: attributes
         )
 
-        @stack.push(span)
+        stack.push(span)
         started_at = @clock.call
         status = "ok"
         error_class = nil
@@ -77,7 +95,8 @@ module JobSearch
           error_class = error.class.name
           raise
         ensure
-          @stack.pop
+          stack.pop
+          release_stack
           emit(span, duration_ms: (@clock.call - started_at).round(2), status: status, error_class: error_class)
         end
       end
@@ -87,6 +106,18 @@ module JobSearch
       end
 
       private
+
+      def stack
+        @lock.synchronize { @stacks[Thread.current] ||= [] }
+      end
+
+      # Thread sem spans abertos não precisa de entrada (evita acumular
+      # pilhas de threads que já terminaram).
+      def release_stack
+        @lock.synchronize do
+          @stacks.delete(Thread.current) if @stacks[Thread.current]&.empty?
+        end
+      end
 
       def correlation
         span = current_span

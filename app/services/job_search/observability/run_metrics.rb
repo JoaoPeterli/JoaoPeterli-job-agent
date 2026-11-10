@@ -9,6 +9,8 @@ module JobSearch
     #
     # cost_usd só é informado quando TODAS as chamadas tiveram preço
     # (cost_complete: true); somar só parte delas subestimaria o custo.
+    #
+    # Thread-safe: spans de agentes em paralelo chegam de várias threads.
     class RunMetrics
       TOKEN_KEYS = %w[input_tokens cached_input_tokens output_tokens total_tokens].freeze
 
@@ -16,12 +18,17 @@ module JobSearch
 
       def initialize(event_logger: EventLogger.new)
         @event_logger = event_logger
+        @lock = Mutex.new
         reset
       end
 
       def call(span)
-        span = span.transform_keys(&:to_s)
+        @lock.synchronize { record(span.transform_keys(&:to_s)) }
+      end
 
+      private
+
+      def record(span)
         case span["name"]
         when "llm.call" then add_llm_call(span)
         when "planning.attempt" then @planning_attempts += 1
@@ -30,8 +37,6 @@ module JobSearch
 
         finish(span) if span["parent_span_id"].nil?
       end
-
-      private
 
       def reset
         @llm_calls = 0

@@ -22,6 +22,10 @@ module JobSearch
         nil
       end
 
+      def attach(_parent)
+        yield
+      end
+
       def log(_level, event:, **_attributes); end
     end
   end
