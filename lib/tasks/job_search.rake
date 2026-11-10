@@ -143,3 +143,39 @@ namespace :job_search do
     end
   end
 end
+
+namespace :job_search do
+  desc 'Envia um run ao harness (assíncrono). Uso: bin/rails "job_search:submit[Vagas Ruby remotas,agent]" ' \
+       "(modo: agent|pipeline|supervisor; KEY=chave de idempotência; INLINE=1 executa neste processo)"
+  task :submit, [ :objective, :mode ] => :environment do |_task, args|
+    objective = args[:objective].to_s.strip
+    abort 'Informe o objetivo: bin/rails "job_search:submit[Vagas Ruby remotas,agent]"' if objective.empty?
+
+    harness = JobSearch::Harness.new
+    options = { objective: objective, mode: args[:mode].presence || "agent" }
+    options[:idempotency_key] = ENV["KEY"] if ENV["KEY"].present?
+    run = harness.submit(**options)
+    puts "Run #{run.id} (#{run.status})"
+
+    if ENV["INLINE"] == "1"
+      run = harness.execute(run.id) || run.reload
+      puts "Status final: #{run.status}#{" (#{run.error_class})" if run.error_class}"
+    end
+  end
+
+  desc 'Mostra o estado de um run do harness. Uso: bin/rails "job_search:status[RUN_ID]"'
+  task :status, [ :run_id ] => :environment do |_task, args|
+    run = AgentRun.find(args[:run_id])
+
+    puts JSON.pretty_generate(
+      run.slice(:id, :mode, :status, :attempts, :error_class, :started_at, :finished_at, :deadline_at, :cancel_requested_at)
+         .merge(metrics: run.metrics, result: run.result)
+    )
+  end
+
+  desc 'Pede o cancelamento de um run. Uso: bin/rails "job_search:cancel[RUN_ID]"'
+  task :cancel, [ :run_id ] => :environment do |_task, args|
+    run = JobSearch::Harness.new.cancel(args[:run_id])
+    puts "Run #{run.id}: #{run.status}#{' (cancelamento pedido; para no próximo checkpoint)' if run.status == 'running'}"
+  end
+end

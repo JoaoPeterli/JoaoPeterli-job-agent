@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_10_140000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_10_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -38,6 +38,27 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_10_140000) do
     t.index ["agent_name", "kind", "created_at"], name: "idx_on_agent_name_kind_created_at_c2292e8770"
     t.index ["kind", "created_at"], name: "index_agent_memory_entries_on_kind_and_created_at"
     t.index ["run_id", "seq"], name: "index_agent_memory_entries_on_run_id_and_seq", unique: true
+  end
+
+  create_table "agent_runs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "mode", null: false
+    t.text "objective", null: false
+    t.string "status", default: "queued", null: false
+    t.string "idempotency_key", null: false
+    t.string "locked_by"
+    t.datetime "locked_until"
+    t.integer "attempts", default: 0, null: false
+    t.datetime "deadline_at"
+    t.datetime "cancel_requested_at"
+    t.jsonb "result", default: {}, null: false
+    t.jsonb "metrics", default: {}, null: false
+    t.string "error_class"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["idempotency_key"], name: "index_agent_runs_on_idempotency_key", unique: true
+    t.index ["status", "locked_until"], name: "index_agent_runs_on_status_and_locked_until"
   end
 
   create_table "job_search_operations", force: :cascade do |t|

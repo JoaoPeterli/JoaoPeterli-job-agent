@@ -39,10 +39,12 @@ module JobSearch
     end
 
     # Cada run é um trace (trace_id = run_id) com o span raiz agent.run.
-    def run
+    # run_id: opcional, para o run usar um id definido por fora (harness).
+    def run(run_id: nil)
       state = AgentState.new(
         objective: objective,
-        inputs: inputs
+        inputs: inputs,
+        **{ run_id: run_id }.compact
       )
 
       @tracer.span(

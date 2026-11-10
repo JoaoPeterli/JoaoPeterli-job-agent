@@ -7,22 +7,28 @@ module JobSearch
     # Os eventos passam pelo EventLogger real (mesmo filtro de segredos).
     # Thread-safe.
     class EventCollector
+      # forward_to: Logger que também recebe os eventos (ex.: Rails.logger),
+      # para coletar sem deixar de logar.
       class Sink
-        def initialize(collector)
+        def initialize(collector, forward_to)
           @collector = collector
+          @forward_to = forward_to
         end
 
         %i[info warn error].each do |level|
-          define_method(level) { |message| @collector.push(JSON.parse(message)) }
+          define_method(level) do |message|
+            @forward_to&.public_send(level, message)
+            @collector.push(JSON.parse(message))
+          end
         end
       end
 
       attr_reader :event_logger
 
-      def initialize
+      def initialize(forward_to: nil)
         @events = []
         @lock = Mutex.new
-        @event_logger = EventLogger.new(logger: Sink.new(self))
+        @event_logger = EventLogger.new(logger: Sink.new(self, forward_to))
       end
 
       def push(event)

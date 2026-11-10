@@ -43,8 +43,10 @@ module JobSearch
         event_logger: EventLogger.new,
         clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_millisecond) },
         id_generator: -> { SecureRandom.hex(8) },
-        listeners: []
+        listeners: [],
+        checkpoint: nil
       )
+        @checkpoint = checkpoint
         @event_logger = event_logger
         @listeners = listeners
         @clock = clock
@@ -73,7 +75,10 @@ module JobSearch
       end
 
       # trace_id só é usado no span raiz; spans filhos herdam o do pai.
+      # checkpoint (opcional) é chamado antes de cada span começar: é onde o
+      # harness pode parar o run (cancelamento, prazo, lease perdido).
       def span(name, trace_id: nil, **attributes)
+        @checkpoint&.call(name)
         parent = current_span
         span = Span.new(
           trace_id: parent&.trace_id || trace_id || @id_generator.call,

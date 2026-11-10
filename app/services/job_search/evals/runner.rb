@@ -61,7 +61,7 @@ module JobSearch
       def run_agent(container, eval_case)
         state = container.agent(objective: eval_case.objective).run
 
-        EvalRun.new(status: state.status, trajectory: trajectory(state, "job_search"), output: agent_output(state))
+        EvalRun.new(status: state.status, trajectory: trajectory(state, "job_search"), output: AgentOutput.from(state))
       end
 
       def run_team(container, eval_case)
@@ -73,11 +73,6 @@ module JobSearch
           trajectory: result.agent_states.flat_map { |id, state| trajectory(state, id) },
           output: result.output&.value
         )
-      end
-
-      # Resultado final do agente único: a análise, se houve; senão as vagas.
-      def agent_output(state)
-        state.observations_from_tool(:analyze_jobs).last || state.observations_from_tool(:search_jobs).flatten(1)
       end
 
       def trajectory(state, agent)

@@ -26,9 +26,12 @@ module JobSearch
     # de integração) mantendo todo o resto da montagem real.
     #
     # event_logger: destino dos logs estruturados (padrão: Rails.logger).
-    def initialize(llm_client: nil, event_logger: Observability::EventLogger.new)
+    #
+    # checkpoint: chamado antes de cada span (harness, Aula 45).
+    def initialize(llm_client: nil, event_logger: Observability::EventLogger.new, checkpoint: nil)
       @llm_client = llm_client
       @event_logger = event_logger
+      @checkpoint = checkpoint
     end
 
     # Monta um agente para um papel (profile).
@@ -137,7 +140,8 @@ module JobSearch
     def new_tracer
       Observability::Tracer.new(
         event_logger: @event_logger,
-        listeners: [ Observability::RunMetrics.new(event_logger: @event_logger) ]
+        listeners: [ Observability::RunMetrics.new(event_logger: @event_logger) ],
+        checkpoint: @checkpoint
       )
     end
 

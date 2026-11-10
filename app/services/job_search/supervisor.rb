@@ -32,9 +32,7 @@ module JobSearch
       @id_generator = id_generator
     end
 
-    def run(objective:)
-      run_id = @id_generator.call
-
+    def run(objective:, run_id: @id_generator.call)
       @tracer.span("supervisor.run", trace_id: run_id, run_id: run_id) do |span|
         audit(run_id, "supervisor.started", "info", objective_sha256: Digest::SHA256.hexdigest(objective.to_s))
 
