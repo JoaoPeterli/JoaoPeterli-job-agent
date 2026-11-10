@@ -2,10 +2,15 @@ module JobSearch
   class Plan
     attr_reader :steps
 
-    def initialize(steps:)
+    # inputs: nomes de dados recebidos de outros agentes. Um passo pode
+    # referenciá-los ({"$ref": "jobs"}) sem dependência: já existem antes
+    # de o plano começar.
+    def initialize(steps:, inputs: [])
       @steps = steps
+      @inputs = inputs.map(&:to_sym)
 
       validate_unique_names!
+      validate_input_names!
       validate_dependencies!
       validate_cycles!
       validate_observation_references!
@@ -31,6 +36,14 @@ module JobSearch
 
       raise ArgumentError,
             "Duplicated step: #{duplicate}"
+    end
+
+    def validate_input_names!
+      conflict = steps.map(&:name).find { |name| @inputs.include?(name) }
+      return unless conflict
+
+      raise ArgumentError,
+            "Step name conflicts with input: #{conflict}"
     end
 
     def validate_dependencies!
@@ -101,6 +114,8 @@ module JobSearch
     end
 
     def validate_reference!(reference, step:, names:)
+      return if @inputs.include?(reference.step_name)
+
       validate_reference_exists!(
         reference,
         names: names

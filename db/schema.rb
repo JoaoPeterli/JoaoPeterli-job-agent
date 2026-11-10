@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_10_130000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_10_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -34,6 +34,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_10_130000) do
     t.string "kind", null: false
     t.text "content", null: false
     t.datetime "created_at", null: false
+    t.string "agent_name", default: "job_search", null: false
+    t.index ["agent_name", "kind", "created_at"], name: "idx_on_agent_name_kind_created_at_c2292e8770"
     t.index ["kind", "created_at"], name: "index_agent_memory_entries_on_kind_and_created_at"
     t.index ["run_id", "seq"], name: "index_agent_memory_entries_on_run_id_and_seq", unique: true
   end

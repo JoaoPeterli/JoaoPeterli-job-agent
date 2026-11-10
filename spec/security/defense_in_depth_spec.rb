@@ -28,7 +28,10 @@ RSpec.describe "Security: defense in depth with a compromised LLM" do
   end
 
   it "keeps a registered tool out of reach when it is not in the allowlist" do
-    stub_const("JobSearch::Container::ALLOWED_TOOLS", %i[search_jobs candidate_profile])
+    stub_const(
+      "JobSearch::AgentProfiles::GENERALIST",
+      JobSearch::AgentProfiles::GENERALIST.with(allowed_tools: %i[search_jobs candidate_profile])
+    )
     plan = plan_json(
       [ "search", "search_jobs", { technology: "Ruby", remote: true } ],
       [ "profile", "candidate_profile" ],

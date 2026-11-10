@@ -6,11 +6,16 @@ module JobSearch
   #   só grava os eventos que ainda não existem.
   # - load reconstrói a ShortTermMemory de um run para recuperação.
   # - candidates entrega eventos de outros runs para o MemoryRetriever.
+  #
+  # agent_name separa a memória de cada papel (multiagente).
   class PersistentMemoryStore
-    def save(run_id:, objective:, memory:)
+    DEFAULT_AGENT_NAME = "job_search".freeze
+
+    def save(run_id:, objective:, memory:, agent_name: DEFAULT_AGENT_NAME)
       rows = memory.entries.map do |entry|
         {
           run_id: run_id,
+          agent_name: agent_name.to_s,
           objective: objective,
           seq: entry.seq,
           kind: entry.kind.to_s,
@@ -40,9 +45,9 @@ module JobSearch
       ShortTermMemory.new(max_entries: max_entries, entries: entries)
     end
 
-    def candidates(kinds:, limit:, exclude_run_id: nil)
+    def candidates(kinds:, limit:, exclude_run_id: nil, agent_name: DEFAULT_AGENT_NAME)
       scope = AgentMemoryEntry
-        .where(kind: kinds.map(&:to_s))
+        .where(agent_name: agent_name.to_s, kind: kinds.map(&:to_s))
         .order(created_at: :desc, id: :desc)
         .limit(limit)
 

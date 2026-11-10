@@ -227,7 +227,7 @@ RSpec.describe JobSearch::Agent do
         state = agent.run
 
         expect(memory_retriever).to have_received(:lessons_for)
-          .with(objective: objective, exclude_run_id: state.run_id)
+          .with(objective: objective, exclude_run_id: state.run_id, agent_name: "job_search")
         expect(received.lessons).to eq([ "Unknown tool: foo" ])
       end
 
@@ -237,7 +237,7 @@ RSpec.describe JobSearch::Agent do
         state = agent.run
 
         expect(memory_store).to have_received(:save)
-          .with(run_id: state.run_id, objective: objective, memory: state.memory)
+          .with(run_id: state.run_id, objective: objective, memory: state.memory, agent_name: "job_search")
         expect(state.memory.entries.last.to_s).to eq("[run_finished] status: completed")
       end
 

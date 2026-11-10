@@ -34,14 +34,15 @@ module JobSearch
       @min_similarity = min_similarity
     end
 
-    def lessons_for(objective:, exclude_run_id: nil)
+    def lessons_for(objective:, exclude_run_id: nil, agent_name: PersistentMemoryStore::DEFAULT_AGENT_NAME)
       objective_terms = terms(objective)
       return [] if objective_terms.empty?
 
       candidates = @store.candidates(
         kinds: LESSON_KINDS,
         limit: @candidate_limit,
-        exclude_run_id: exclude_run_id
+        exclude_run_id: exclude_run_id,
+        agent_name: agent_name
       )
 
       candidates

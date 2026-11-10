@@ -69,7 +69,7 @@ module JobSearch
     end
 
     def run_step(step, state:)
-      state.start_step!(step.name)
+      state.start_step!(step.name, tool: step.action.tool)
 
       action = step.action
       state.add_action(action)
@@ -141,7 +141,11 @@ module JobSearch
     def resolve_value(value, state:)
       case value
       when ObservationReference
-        state.observation_for(value.step_name)
+        if state.input?(value.step_name)
+          state.input_value(value.step_name)
+        else
+          state.observation_for(value.step_name)
+        end
 
       when Hash
         value.transform_values do |nested_value|

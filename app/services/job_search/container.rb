@@ -3,17 +3,9 @@ require "openai"
 
 module JobSearch
   class Container
-    # Ferramentas que este agente pode usar. Uma ferramenta registrada
-    # fora desta lista não aparece para o LLM nem pode ser executada.
-    ALLOWED_TOOLS = [
-      :search_jobs,
-      :candidate_profile,
-      :analyze_jobs
-    ].freeze
-
-    MAX_CALLS_PER_TOOL = {
-      search_jobs: 5
-    }.freeze
+    # Ferramentas e limites de cada agente vêm do AgentProfile: uma
+    # ferramenta fora de allowed_tools não aparece para o LLM nem pode ser
+    # executada por aquele agente.
 
     LLM_MODEL = "gpt-5.6".freeze
     LLM_PRICING_PATH = Rails.root.join("config/llm_pricing.yml")
@@ -33,20 +25,32 @@ module JobSearch
       @event_logger = event_logger
     end
 
-    # Cada agente recebe um Tracer próprio, compartilhado entre planner e
-    # executor, para que todos os spans do run fiquem no mesmo trace.
-    # O RunMetrics escuta esse Tracer e resume o run em "run.metrics";
-    # o LLM é medido por um MeteredLlmClient com orçamento próprio do run.
-    def agent(objective:)
-      tracer = Observability::Tracer.new(
-        event_logger: @event_logger,
-        listeners: [ Observability::RunMetrics.new(event_logger: @event_logger) ]
-      )
+    # Monta um agente para um papel (profile).
+    #
+    # Sem tracer, o agente ganha um Tracer próprio (o run é a raiz do
+    # trace, e o RunMetrics resume o run). Com tracer (ex.: dentro de um
+    # pipeline multiagente), o run vira um ramo do trace de quem chamou.
+    # O LLM é medido por um MeteredLlmClient com orçamento próprio do run.
+    def agent(
+      objective:,
+      profile: AgentProfiles::GENERALIST,
+      inputs: [],
+      tracer: nil,
+      parent_run_id: nil
+    )
+      tracer ||= new_tracer
 
       Agent.new(
         objective: objective,
-        planner: planner(tracer: tracer, client: metered_llm_client(tracer: tracer)),
-        plan_executor: plan_executor(tracer: tracer, audit_trail: audit_trail),
+        name: profile.name,
+        inputs: inputs,
+        parent_run_id: parent_run_id,
+        planner: planner(
+          tracer: tracer,
+          client: metered_llm_client(tracer: tracer, profile: profile),
+          profile: profile
+        ),
+        plan_executor: plan_executor(tracer: tracer, audit_trail: audit_trail, profile: profile),
         audit_trail: audit_trail,
         planning_retry_policy: planning_retry_policy,
         tracer: tracer,
@@ -55,16 +59,30 @@ module JobSearch
       )
     end
 
+    # Pipeline multiagente: pesquisador -> analista, num único trace.
+    def pipeline(stages: [ AgentProfiles::RESEARCHER, AgentProfiles::ANALYST ])
+      MultiAgentPipeline.new(
+        stages: stages,
+        agent_factory: self,
+        tracer: new_tracer,
+        audit_trail: audit_trail
+      )
+    end
+
     # Cada PlanExecutor tem o próprio budget, compartilhado apenas com o
     # seu Executor: execuções diferentes não somam tempo nem chamadas.
-    def plan_executor(tracer: Observability::NullTracer.new, audit_trail: NullAuditTrail.new)
+    def plan_executor(
+      tracer: Observability::NullTracer.new,
+      audit_trail: NullAuditTrail.new,
+      profile: AgentProfiles::GENERALIST
+    )
       budget = execution_budget
 
       PlanExecutor.new(
         executor: executor(execution_budget: budget),
         execution_budget: budget,
         tool_catalog: tool_catalog,
-        tool_authorizer: tool_authorizer(audit_trail: audit_trail),
+        tool_authorizer: tool_authorizer(audit_trail: audit_trail, profile: profile),
         tracer: tracer
       )
     end
@@ -77,6 +95,13 @@ module JobSearch
 
     private
 
+    def new_tracer
+      Observability::Tracer.new(
+        event_logger: @event_logger,
+        listeners: [ Observability::RunMetrics.new(event_logger: @event_logger) ]
+      )
+    end
+
     def memory_store
       @memory_store ||= PersistentMemoryStore.new
     end
@@ -88,17 +113,17 @@ module JobSearch
       )
     end
 
-    def tool_authorizer(audit_trail:)
+    def tool_authorizer(audit_trail:, profile:)
       ToolAuthorizer.new(
         tool_catalog: tool_catalog,
-        allowed_tools: ALLOWED_TOOLS,
-        max_calls_per_tool: MAX_CALLS_PER_TOOL,
+        allowed_tools: profile.allowed_tools,
+        max_calls_per_tool: profile.max_calls_per_tool,
         audit_trail: audit_trail
       )
     end
 
-    def planning_tool_catalog
-      tool_catalog.only(ALLOWED_TOOLS)
+    def planning_tool_catalog(profile = AgentProfiles::GENERALIST)
+      tool_catalog.only(profile.allowed_tools)
     end
 
     def execution_budget
@@ -125,14 +150,19 @@ module JobSearch
       )
     end
 
-    def planner(tracer: Observability::NullTracer.new, client: llm_client)
+    def planner(
+      tracer: Observability::NullTracer.new,
+      profile: AgentProfiles::GENERALIST,
+      client: llm_client(profile)
+    )
       LlmPlanner.new(
         llm_client: client,
         registry: registry,
-        tool_catalog: planning_tool_catalog,
+        tool_catalog: planning_tool_catalog(profile),
         tool_validator: tool_validator,
         context_window: context_window,
-        tracer: tracer
+        tracer: tracer,
+        role: profile.role
       )
     end
 
@@ -148,9 +178,9 @@ module JobSearch
       )
     end
 
-    def metered_llm_client(tracer:)
+    def metered_llm_client(tracer:, profile:)
       MeteredLlmClient.new(
-        client: llm_client,
+        client: llm_client(profile),
         tracer: tracer,
         pricing_table: pricing_table,
         budget: LlmBudget.new(
@@ -165,18 +195,23 @@ module JobSearch
       @pricing_table ||= LlmPricingTable.load(LLM_PRICING_PATH)
     end
 
-    def llm_client
-      @llm_client ||= OpenAiLlmClient.new(
+    # O schema de saída lista as ferramentas do papel, então cada papel
+    # tem o seu cliente. Um llm_client injetado (testes) serve a todos.
+    def llm_client(profile = AgentProfiles::GENERALIST)
+      return @llm_client if @llm_client
+
+      @llm_clients ||= {}
+      @llm_clients[profile.name] ||= OpenAiLlmClient.new(
         client: openai_client,
         model: LLM_MODEL,
-        output_schema: plan_output_schema,
+        output_schema: plan_output_schema(profile),
         max_output_tokens: 2_000
       )
     end
 
-    def plan_output_schema
+    def plan_output_schema(profile = AgentProfiles::GENERALIST)
       PlanOutputSchema.new(
-        tool_catalog: planning_tool_catalog
+        tool_catalog: planning_tool_catalog(profile)
       ).to_h
     end
 

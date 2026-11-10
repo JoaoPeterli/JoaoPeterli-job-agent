@@ -2,12 +2,15 @@ require "digest"
 
 module JobSearch
   class Agent
-    attr_reader :objective
+    attr_reader :objective, :name, :inputs, :parent_run_id
 
     # memory_store / memory_retriever são opcionais: sem eles o agente
     # funciona só com a memória de curto prazo. A memória persistente é
     # auxiliar e nunca derruba uma execução: falhas ao ler ou gravar são
     # registradas no log e o run continua.
+    # name: papel do agente (separa a memória persistente por papel).
+    # inputs: AgentInput recebidos de outro agente.
+    # parent_run_id: run do coordenador que delegou este trabalho.
     def initialize(
       objective:,
       planner:,
@@ -17,9 +20,15 @@ module JobSearch
       memory_retriever: nil,
       event_logger: Observability::EventLogger.new,
       tracer: nil,
-      audit_trail: NullAuditTrail.new
+      audit_trail: NullAuditTrail.new,
+      name: PersistentMemoryStore::DEFAULT_AGENT_NAME,
+      inputs: [],
+      parent_run_id: nil
     )
       @audit_trail = audit_trail
+      @name = name.to_s
+      @inputs = inputs
+      @parent_run_id = parent_run_id
       @objective = objective
       @planner = planner
       @plan_executor = plan_executor
@@ -32,13 +41,15 @@ module JobSearch
     # Cada run é um trace (trace_id = run_id) com o span raiz agent.run.
     def run
       state = AgentState.new(
-        objective: objective
+        objective: objective,
+        inputs: inputs
       )
 
       @tracer.span(
         "agent.run",
         trace_id: state.run_id,
         run_id: state.run_id,
+        agent: name,
         objective_chars: objective.to_s.length
       ) do |span|
         run_traced(state, span)
@@ -56,7 +67,8 @@ module JobSearch
       plan = @planning_retry_policy.call(
         objective: objective,
         memory: state.memory,
-        lessons: lessons
+        lessons: lessons,
+        inputs: inputs
       ) do |context|
         plan_attempt(context)
       end
@@ -85,9 +97,12 @@ module JobSearch
         event: "run.started",
         outcome: "info",
         details: {
+          agent: name,
+          parent_run_id: parent_run_id,
+          inputs: (inputs.map { |input| input.name.to_s } if inputs.any?),
           objective_sha256: Digest::SHA256.hexdigest(objective.to_s),
           objective_chars: objective.to_s.length
-        }
+        }.compact
       )
     end
 
@@ -140,7 +155,8 @@ module JobSearch
 
       @memory_retriever.lessons_for(
         objective: objective,
-        exclude_run_id: state.run_id
+        exclude_run_id: state.run_id,
+        agent_name: name
       )
     rescue StandardError => error
       log_memory_failure("agent_memory.retrieve_failed", state, error)
@@ -155,7 +171,8 @@ module JobSearch
       @memory_store.save(
         run_id: state.run_id,
         objective: objective,
-        memory: state.memory
+        memory: state.memory,
+        agent_name: name
       )
     rescue StandardError => error
       log_memory_failure("agent_memory.persist_failed", state, error)

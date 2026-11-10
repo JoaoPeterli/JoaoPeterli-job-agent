@@ -34,6 +34,7 @@ RSpec.describe "Agent audit trail" do
 
     started = audit_trail.events(state.run_id).first
     expect(started.details).to eq(
+      "agent" => "job_search",
       "objective_sha256" => Digest::SHA256.hexdigest(objective), "objective_chars" => objective.length
     )
     expect(AgentAuditEvent.pluck(:details).to_json).not_to include(objective)
