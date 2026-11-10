@@ -670,6 +670,12 @@ fieldset.field > legend { margin-bottom: 0.5rem; }
   .tabs { flex-wrap: wrap; }
   .hide-sm { display: none; }
   .show-sm, .table__primary--wrap .show-sm { display: block; }
+  .score { gap: 0.375rem; }
+  .score__track { width: 2.5rem; }
+  .score__by { display: none; }
+  .feedback-cell { padding-left: 0; }
+  .feedback-button { width: 1.75rem; height: 1.75rem; }
+  .feedback { flex-direction: column; }
   .table__meta--row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.375rem; }
   .table__primary { white-space: normal; max-width: none; }
 }
@@ -731,3 +737,20 @@ fieldset.field > legend { margin-bottom: 0.5rem; }
 @media (max-width: 768px) {
   .choice-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ---------- Feedback 👍/👎 ---------- */
+
+.feedback { display: flex; gap: 0.125rem; justify-content: flex-end; }
+.feedback-form { display: contents; }
+.feedback-button { width: 2rem; height: 2rem; color: var(--muted-foreground); }
+.feedback-button--like[aria-pressed="true"] { background: var(--success-soft); color: var(--success); }
+.feedback-button--dislike[aria-pressed="true"] { background: var(--danger-soft); color: var(--danger); }
+.table tbody tr.is-dismissed > td:not(.feedback-cell) { opacity: 0.45; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.preferences { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.preferences__item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); }
+.preferences__text { flex: 1; min-width: 0; display: grid; }
+.preferences__title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preferences__icon--like { color: var(--success); }
+.preferences__icon--dislike { color: var(--danger); }

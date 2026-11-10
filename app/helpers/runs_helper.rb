@@ -110,6 +110,21 @@ module RunsHelper
     end
   end
 
+  # Botões 👍/👎 de uma vaga. O ativo fica marcado; clicar de novo desfaz.
+  def feedback_buttons(run, job_key, feedback)
+    buttons = { "like" => [ "thumbs-up", "Gostei" ], "dislike" => [ "thumbs-down", "Descartar" ] }.map do |verdict, (icon_name, label)|
+      active = feedback&.verdict == verdict
+      button_to(job_feedbacks_path, params: { run_id: run.id, job_key: job_key, verdict: verdict },
+                class: "icon-button feedback-button feedback-button--#{verdict}",
+                aria: { pressed: active, label: active ? "#{label} (desfazer)" : label },
+                title: active ? "#{label} (clique para desfazer)" : label, form_class: "feedback-form") do
+        icon(icon_name)
+      end
+    end
+
+    tag.div(safe_join(buttons), class: "feedback")
+  end
+
   def score_width(score)
     "width: #{score.to_i.clamp(0, 100)}%"
   end

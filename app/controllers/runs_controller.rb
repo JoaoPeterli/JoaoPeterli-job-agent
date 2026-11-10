@@ -31,8 +31,12 @@ class RunsController < ApplicationController
 
   def show
     @run = AgentRun.find(params[:id])
-    @jobs = Array(@run.result["output"]).select { |job| job.is_a?(Hash) }.each_with_index
-                  .sort_by { |job, index| [ -job["score"].to_i, index ] }.map(&:first)
+    jobs = Array(@run.result["output"]).select { |job| job.is_a?(Hash) }
+    @feedbacks = JobFeedback.where(job_key: jobs.map { |job| JobFeedback.key_for(job) }).index_by(&:job_key)
+    # Descartadas vão para o fim; o resto, pela nota.
+    @jobs = jobs.each_with_index.sort_by do |job, index|
+      [ @feedbacks[JobFeedback.key_for(job)]&.verdict == "dislike" ? 1 : 0, -job["score"].to_i, index ]
+    end.map(&:first)
     @audit_trail = JobSearch::AuditTrail.new
     @audit_events = @audit_trail.events(@run.id)
     @audit_check = @audit_trail.verify(@run.id)

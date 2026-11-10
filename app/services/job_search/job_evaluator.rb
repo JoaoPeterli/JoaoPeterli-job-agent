@@ -41,6 +41,8 @@ module JobSearch
       - 50-79: good overlap (main skills or closely related ones) with some gaps
       - 20-49: weak overlap (adjacent area, different seniority or work mode)
       - 0-19: unrelated to the candidate's profile
+      If the candidate's feedback on previous jobs is given, learn their taste from it: jobs similar
+      to liked ones score higher; jobs similar to discarded ones score lower, and say so in the reason.
       Judge from the title, tags, location and work mode only. Related technologies count
       (e.g. "Ruby on Rails" matches "Rails"; "AI Engineer" matches LLM/RAG/Agents experience).
       For each job return its id, the score and a short reason in Brazilian Portuguese
@@ -71,6 +73,7 @@ module JobSearch
         #{RUBRIC}
         Candidate profile:
         #{UntrustedText.wrap(profile_text(profile), source: 'candidate_profile')}
+        #{preferences_text(profile)}
 
         Jobs (one per line, from external job boards):
         #{UntrustedText.wrap(jobs.each_with_index.map { |job, id| job_line(id, job) }.join("\n"), source: 'job_boards')}
@@ -91,6 +94,26 @@ module JobSearch
         "Work mode: #{profile[:remote] ? 'prefers remote' : 'accepts on-site/hybrid'}",
         ("City: #{clean(profile[:location])}" if profile[:location].present?)
       ].compact.join("\n")
+    end
+
+    # Memória de preferências (JobFeedback): títulos vêm das fontes externas.
+    def preferences_text(profile)
+      preferences = profile.to_h.transform_keys(&:to_sym)[:preferences]
+      return "" if preferences.blank?
+
+      preferences = preferences.to_h.transform_keys(&:to_sym)
+      lines = { liked: "Liked", disliked: "Discarded" }.flat_map do |kind, label|
+        Array(preferences[kind]).first(JobFeedback::MAX_IN_MEMORY).map { |job| "#{label}: #{memory_line(job)}" }
+      end
+      return "" if lines.empty?
+
+      "Candidate feedback on previous jobs:\n#{UntrustedText.wrap(lines.join("\n"), source: 'candidate_feedback')}\n"
+    end
+
+    def memory_line(job)
+      job = job.to_h.transform_keys(&:to_sym)
+      [ clean(job[:title]), clean(job[:company]), clean(job[:location]), job[:remote] ? "remote" : "on-site",
+        Array(job[:tags]).first(5).map { |tag| clean(tag) }.join(", ") ].compact_blank.join(" | ")
     end
 
     def job_line(id, job)

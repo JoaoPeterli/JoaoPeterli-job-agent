@@ -67,9 +67,9 @@
 
   <section class="card">
     <div class="card__header">
-      <h2 class="card__title">Vagas <span class="count"><%= @jobs.size %></span></h2>
+      <h2 class="card__title" id="vagas">Vagas <span class="count"><%= @jobs.size %></span></h2>
       <p class="card__description">
-        Ordenadas pela aderência ao seu <%= link_to "perfil", edit_profile_path, class: "text-link" %>. As melhores são avaliadas pela IA, com o motivo da nota. Clique na vaga para abrir o anúncio original.
+        Ordenadas pela aderência ao seu <%= link_to "perfil", edit_profile_path, class: "text-link" %>. As melhores são avaliadas pela IA, com o motivo da nota. Marque 👍/👎: a IA aprende o seu gosto nas próximas buscas. Clique na vaga para abrir o anúncio original.
         <% if (sources = JobSearch::JobSources.attributions).any? %>
           Fontes: <%= safe_join(sources.map { |source| link_to(source[:name], source[:url], target: "_blank", rel: "noopener", class: "text-link") }, ", ") %>.
         <% end %>
@@ -90,11 +90,14 @@
               <th scope="col" class="hide-sm">Modalidade</th>
               <th scope="col" class="hide-sm">Publicada</th>
               <th scope="col">Aderência</th>
+              <th scope="col"><span class="visually-hidden">Sua opinião</span></th>
             </tr>
           </thead>
           <tbody>
             <% @jobs.each do |job| %>
-              <tr>
+              <% key = JobFeedback.key_for(job) %>
+              <% feedback = @feedbacks[key] %>
+              <tr class="<%= 'is-dismissed' if feedback && !feedback.liked? %>">
                 <td class="table__primary table__primary--wrap">
                   <%= job_title_link(job) %>
                   <span class="table__meta"><%= [ job["company"], job["location"] ].compact_blank.join(" · ").presence || "—" %></span>
@@ -125,6 +128,7 @@
                     <span class="muted">—</span>
                   <% end %>
                 </td>
+                <td class="feedback-cell"><%= feedback_buttons(@run, key, feedback) %></td>
               </tr>
             <% end %>
           </tbody>

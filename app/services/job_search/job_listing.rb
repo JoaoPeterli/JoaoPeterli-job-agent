@@ -41,9 +41,14 @@ module JobSearch
       }
     end
 
-    # Chave para remover a mesma vaga publicada em mais de uma fonte.
-    def dedup_key
+    # Chave para remover a mesma vaga publicada em mais de uma fonte (e
+    # para ligar a vaga ao feedback do usuário, JobFeedback#job_key).
+    def self.key_for(title:, company:)
       [ title, company ].map { |part| part.to_s.downcase.gsub(/[^[:alnum:]]/, "") }.join("|")
+    end
+
+    def dedup_key
+      self.class.key_for(title: title, company: company)
     end
   end
 end

@@ -69,4 +69,41 @@
       </p>
     </aside>
   </div>
+
+  <section class="card" id="preferencias">
+    <div class="card__header">
+      <h2 class="card__title">Suas preferências <span class="count"><%= @feedbacks.size %></span></h2>
+      <p class="card__description">
+        Vagas que você marcou com 👍 ou 👎. As <%= JobFeedback::MAX_IN_MEMORY %> mais recentes de cada tipo vão para a IA,
+        que dá nota maior a vagas parecidas com as que você gostou e menor às parecidas com as descartadas.
+        <% if @feedbacks.any? %>(<%= @feedback_counts["like"].to_i %> gostei · <%= @feedback_counts["dislike"].to_i %> descartadas)<% end %>
+      </p>
+    </div>
+
+    <% if @feedbacks.empty? %>
+      <%= render "shared/empty_state", icon_name: "thumbs-up", title: "Nenhuma vaga marcada ainda",
+                 message: "Nas vagas de um run, use 👍 para o que te interessa e 👎 para o que não quer ver." %>
+    <% else %>
+      <ul class="preferences">
+        <% @feedbacks.each do |feedback| %>
+          <li class="preferences__item">
+            <%= icon(feedback.liked? ? "thumbs-up" : "thumbs-down", class_name: "preferences__icon--#{feedback.verdict}",
+                     label: feedback.liked? ? "Gostei" : "Descartada") %>
+            <span class="preferences__text">
+              <% if feedback.url.present? %>
+                <%= link_to feedback.title, feedback.url, target: "_blank", rel: "noopener", class: "preferences__title row-link" %>
+              <% else %>
+                <span class="preferences__title"><%= feedback.title %></span>
+              <% end %>
+              <span class="table__meta"><%= [ feedback.company, feedback.location, feedback.source ].compact_blank.join(" · ") %></span>
+            </span>
+            <%= button_to job_feedback_path(feedback), method: :delete, class: "icon-button", aria: { label: "Remover marcação" },
+                          title: "Remover marcação" do %>
+              <%= icon("x") %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </section>
 </div>

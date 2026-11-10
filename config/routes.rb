@@ -4,6 +4,7 @@ Rails.application.routes.draw do
   root "runs#index"
 
   resource :profile, only: %i[edit update]
+  resources :job_feedbacks, only: %i[create destroy]
 
   resources :runs, only: %i[index new create show destroy] do
     member do
