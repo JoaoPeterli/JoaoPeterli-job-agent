@@ -140,4 +140,21 @@ RSpec.describe JobSearch::ToolCatalog do
     )
   end
 end
+
+  describe "#only" do
+    it "returns a catalog restricted to the given tools" do
+      catalog = described_class.new(
+        definitions: [
+          JobSearch::ToolDefinition.new(name: :search_jobs, description: "Search", side_effects: false),
+          JobSearch::ToolDefinition.new(name: :apply_job, description: "Apply", side_effects: true)
+        ]
+      )
+
+      restricted = catalog.only([ "search_jobs" ])
+
+      expect(restricted.definitions.map(&:name)).to eq([ :search_jobs ])
+      expect(restricted.include?(:apply_job)).to be(false)
+      expect(restricted.to_prompt).not_to include("apply_job")
+    end
+  end
 end

@@ -17,6 +17,20 @@ module JobSearch
             "Unknown tool definition: #{name}"
     end
 
+    def include?(name)
+      definitions.any? { |definition| definition.name == name.to_sym }
+    end
+
+    # Catálogo restrito às ferramentas liberadas. Usado no planejamento:
+    # o LLM não vê (nem recebe no schema) ferramentas que não pode usar.
+    def only(names)
+      names = names.map(&:to_sym)
+
+      self.class.new(
+        definitions: definitions.select { |definition| names.include?(definition.name) }
+      )
+    end
+
     def to_prompt
       definitions.map do |definition|
         format_definition(

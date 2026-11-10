@@ -129,4 +129,67 @@ RSpec.describe JobSearch::OpenAiLlmClient do
       end.to raise_error(ArgumentError, /additionalProperties: false/)
     end
   end
+
+  describe "provider errors" do
+    def openai_error(klass, status)
+      klass.new(
+        url: URI("https://api.openai.com/v1/responses"), status: status,
+        headers: {}, body: nil, request: nil, response: nil, message: "provider said no"
+      )
+    end
+
+    {
+      OpenAI::Errors::AuthenticationError => [ 401, false, /rejected the credentials \(HTTP 401\)/ ],
+      OpenAI::Errors::PermissionDeniedError => [ 403, false, /rejected the credentials \(HTTP 403\)/ ],
+      OpenAI::Errors::RateLimitError => [ 429, true, /unavailable \(RateLimitError\)/ ],
+      OpenAI::Errors::InternalServerError => [ 500, true, /unavailable \(InternalServerError\)/ ],
+      OpenAI::Errors::BadRequestError => [ 400, false, /rejected the request \(HTTP 400\)/ ]
+    }.each do |error_class, (status, transient, message)|
+      it "maps #{error_class.name.demodulize} to a non-retryable provider error" do
+        allow(responses_api).to receive(:create).and_raise(openai_error(error_class, status))
+
+        expect { build_client.complete(prompt: "Create a plan") }
+          .to raise_error(JobSearch::LlmProviderError, message) { |error|
+            expect(error).not_to be_retryable
+            expect(error.transient?).to be(transient)
+          }
+      end
+    end
+
+    it "maps connection failures to a transient provider error" do
+      allow(responses_api).to receive(:create)
+        .and_raise(OpenAI::Errors::APIConnectionError.new(url: URI("https://api.openai.com")))
+
+      expect { build_client.complete(prompt: "Create a plan") }
+        .to raise_error(JobSearch::LlmProviderError) { |error| expect(error.transient?).to be(true) }
+    end
+
+    it "does not leak the provider message or the API key" do
+      allow(responses_api).to receive(:create)
+        .and_raise(openai_error(OpenAI::Errors::AuthenticationError, 401))
+
+      expect { build_client.complete(prompt: "Create a plan") }
+        .to raise_error(JobSearch::LlmProviderError) { |error|
+          expect(error.message).not_to include("provider said no")
+        }
+    end
+
+    it "is not recorded as a rejected plan" do
+      allow(responses_api).to receive(:create)
+        .and_raise(openai_error(OpenAI::Errors::AuthenticationError, 401))
+      memory = JobSearch::ShortTermMemory.new
+      policy = JobSearch::PlanningRetryPolicy.new(max_attempts: 3)
+      calls = 0
+
+      expect do
+        policy.call(objective: "Vagas Ruby", memory: memory) do
+          calls += 1
+          build_client.complete(prompt: "Create a plan")
+        end
+      end.to raise_error(JobSearch::LlmProviderError)
+
+      expect(calls).to eq(1)
+      expect(memory).to be_empty
+    end
+  end
 end

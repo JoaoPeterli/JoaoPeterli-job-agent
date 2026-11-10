@@ -303,10 +303,16 @@ module JobSearch
     end
 
     def validate_tool!(tool)
-      return if @registry.registered?(tool)
+      unless @registry.registered?(tool)
+        raise PlanValidationError,
+              "Unknown tool: #{tool}"
+      end
+
+      # Ferramenta existe, mas não foi oferecida a este planner.
+      return if @tool_catalog.definitions.empty? || @tool_catalog.include?(tool)
 
       raise PlanValidationError,
-            "Unknown tool: #{tool}"
+            "Tool not allowed: #{tool}"
     end
   end
 end

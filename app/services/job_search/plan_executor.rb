@@ -1,9 +1,17 @@
 module JobSearch
   class PlanExecutor
-    def initialize(executor:, execution_budget:, tool_catalog:)
+    # tool_authorizer: por padrão libera as ferramentas do catálogo, mas
+    # nega toda ação com efeito colateral sem aprovação (padrão seguro).
+    def initialize(
+      executor:,
+      execution_budget:,
+      tool_catalog:,
+      tool_authorizer: ToolAuthorizer.new(tool_catalog: tool_catalog)
+    )
       @executor = executor
       @execution_budget = execution_budget
       @tool_catalog = tool_catalog
+      @tool_authorizer = tool_authorizer
     end
 
     def execute(plan:, state:)
@@ -11,6 +19,8 @@ module JobSearch
       # não da construção do budget (o planejamento via LLM vem antes).
       @execution_budget.start!
       @execution_budget.validate!(plan: plan)
+      @tool_authorizer.start!
+      @tool_authorizer.authorize_plan!(plan)
 
       state.memory.record(
         :plan_started,
@@ -57,6 +67,8 @@ module JobSearch
         tool: action.tool,
         arguments: resolved_arguments
       )
+
+      @tool_authorizer.authorize!(executable_action, run_id: state.run_id)
 
       result = @executor.execute(
         executable_action,

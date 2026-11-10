@@ -28,6 +28,24 @@ module JobSearch
       to_llm_response(
         @client.responses.create(**request_params(prompt))
       )
+    rescue OpenAI::Errors::AuthenticationError,
+           OpenAI::Errors::PermissionDeniedError => error
+      raise LlmProviderError.new(
+        "LLM provider rejected the credentials (HTTP #{error.status}). Check OPENAI_API_KEY.",
+        transient: false
+      )
+    rescue OpenAI::Errors::RateLimitError,
+           OpenAI::Errors::InternalServerError,
+           OpenAI::Errors::APIConnectionError => error
+      raise LlmProviderError.new(
+        "LLM provider unavailable (#{error.class.name.demodulize}). Try again later.",
+        transient: true
+      )
+    rescue OpenAI::Errors::APIStatusError => error
+      raise LlmProviderError.new(
+        "LLM provider rejected the request (HTTP #{error.status}).",
+        transient: false
+      )
     end
 
     private

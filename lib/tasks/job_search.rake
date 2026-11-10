@@ -10,6 +10,8 @@ namespace :job_search do
       state = agent.run
     rescue JobSearch::PlanningError => error
       abort "Planejamento falhou: #{error.message}"
+    rescue JobSearch::ToolAuthorizationError => error
+      abort "Execução bloqueada pela política de ferramentas: #{error.message}"
     end
 
     puts JSON.pretty_generate(

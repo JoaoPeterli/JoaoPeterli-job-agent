@@ -3,6 +3,18 @@ require "openai"
 
 module JobSearch
   class Container
+    # Ferramentas que este agente pode usar. Uma ferramenta registrada
+    # fora desta lista não aparece para o LLM nem pode ser executada.
+    ALLOWED_TOOLS = [
+      :search_jobs,
+      :candidate_profile,
+      :analyze_jobs
+    ].freeze
+
+    MAX_CALLS_PER_TOOL = {
+      search_jobs: 5
+    }.freeze
+
     # llm_client: permite trocar o LLM (ex.: cliente roteirizado nos testes
     # de integração) mantendo todo o resto da montagem real.
     def initialize(llm_client: nil)
@@ -28,7 +40,8 @@ module JobSearch
       PlanExecutor.new(
         executor: executor(execution_budget: budget),
         execution_budget: budget,
-        tool_catalog: tool_catalog
+        tool_catalog: tool_catalog,
+        tool_authorizer: tool_authorizer
       )
     end
 
@@ -42,6 +55,18 @@ module JobSearch
       MemoryRetriever.new(
         store: memory_store
       )
+    end
+
+    def tool_authorizer
+      ToolAuthorizer.new(
+        tool_catalog: tool_catalog,
+        allowed_tools: ALLOWED_TOOLS,
+        max_calls_per_tool: MAX_CALLS_PER_TOOL
+      )
+    end
+
+    def planning_tool_catalog
+      tool_catalog.only(ALLOWED_TOOLS)
     end
 
     def execution_budget
@@ -72,7 +97,7 @@ module JobSearch
       LlmPlanner.new(
         llm_client: llm_client,
         registry: registry,
-        tool_catalog: tool_catalog,
+        tool_catalog: planning_tool_catalog,
         tool_validator: tool_validator,
         context_window: context_window
       )
@@ -101,7 +126,7 @@ module JobSearch
 
     def plan_output_schema
       PlanOutputSchema.new(
-        tool_catalog: tool_catalog
+        tool_catalog: planning_tool_catalog
       ).to_h
     end
 

@@ -561,6 +561,33 @@ RSpec.describe JobSearch::LlmPlanner do
     end
   end
 
+  describe "tool allowlist" do
+    it "rejects a registered tool that was not offered to the planner" do
+      registry = JobSearch::ToolRegistry.new
+      registry.register(:search_jobs, JobSearch::SearchJobsTool)
+      registry.register(:candidate_profile, JobSearch::CandidateProfileTool)
+      catalog = JobSearch::ToolCatalog.new(
+        definitions: [
+          JobSearch::ToolDefinition.new(
+            name: :search_jobs, description: "Search",
+            schema: { technology: String, remote: [ TrueClass, FalseClass ] }
+          )
+        ]
+      )
+      llm_client = instance_double(JobSearch::LlmClient)
+      allow(llm_client).to receive(:complete).and_return(
+        JSON.generate(steps: [ { name: "profile", tool: "candidate_profile", arguments: {}, dependencies: [] } ])
+      )
+      planner = described_class.new(llm_client: llm_client, registry: registry, tool_catalog: catalog)
+
+      expect { planner.plan(context: JobSearch::PlanningContext.new(objective: "Vagas Ruby")) }
+        .to raise_error(JobSearch::PlanningError) { |error|
+          expect(error).to be_retryable
+          expect(error.cause.message).to eq("Tool not allowed: candidate_profile")
+        }
+    end
+  end
+
   describe "malformed observation references" do
     let(:registry) do
       JobSearch::ToolRegistry.new.tap do |tool_registry|

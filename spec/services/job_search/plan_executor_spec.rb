@@ -339,6 +339,20 @@ RSpec.describe JobSearch::PlanExecutor do
   end
 
   describe "idempotency keys for side-effecting tools" do
+    # Estes testes tratam só da chave de idempotência; a aprovação das
+    # ações é coberta em "tool authorization".
+    let(:plan_executor) do
+      described_class.new(
+        executor: executor,
+        execution_budget: execution_budget,
+        tool_catalog: tool_catalog,
+        tool_authorizer: JobSearch::ToolAuthorizer.new(
+          tool_catalog: tool_catalog,
+          approval_gate: instance_double(JobSearch::StaticApprovalGate, approved?: true)
+        )
+      )
+    end
+
     def apply_plan(step_name, job_id: 42)
       JobSearch::Plan.new(
         steps: [
@@ -457,6 +471,72 @@ RSpec.describe JobSearch::PlanExecutor do
 
         expect(state.memory.entries.map(&:content).join).not_to include("Secret Corp")
       end
+    end
+  end
+
+  describe "tool authorization" do
+    def apply_step(name, job_id:, dependencies: [])
+      JobSearch::Step.new(
+        name: name,
+        action: JobSearch::AgentAction.new(tool: :apply_job, arguments: { job_id: job_id, candidate_id: 7 }),
+        dependencies: dependencies
+      )
+    end
+
+    it "executes nothing when the plan uses a tool outside the allowlist" do
+      authorized_executor = described_class.new(
+        executor: executor,
+        execution_budget: execution_budget,
+        tool_catalog: tool_catalog,
+        tool_authorizer: JobSearch::ToolAuthorizer.new(tool_catalog: tool_catalog, allowed_tools: [ :search_jobs ])
+      )
+      plan = JobSearch::Plan.new(steps: [ search_step, apply_step(:apply, job_id: 1, dependencies: [ :search ]) ])
+
+      expect { authorized_executor.execute(plan: plan, state: state) }
+        .to raise_error(JobSearch::ToolNotAuthorizedError)
+
+      expect(executor).not_to have_received(:execute)
+      expect(state.status).to eq(:failed)
+    end
+
+    it "blocks a side-effect action without approval by default" do
+      plan = JobSearch::Plan.new(steps: [ search_step, apply_step(:apply, job_id: 1, dependencies: [ :search ]) ])
+
+      expect { plan_executor.execute(plan: plan, state: state) }
+        .to raise_error(JobSearch::ApprovalRequiredError)
+
+      expect(executor).to have_received(:execute).once
+      expect(state.step_status(:apply)).to eq(:failed)
+      expect(state.memory.of_kind(:step_failed).last.content)
+        .to include("JobSearch::ApprovalRequiredError")
+    end
+
+    it "checks approval against the resolved arguments" do
+      resolved = { job_id: 99, candidate_id: 7 }
+      approved = JobSearch::OperationFingerprint.call(tool: :apply_job, arguments: resolved)
+      allow(executor).to receive(:execute).and_return(99)
+
+      approving_executor = described_class.new(
+        executor: executor,
+        execution_budget: execution_budget,
+        tool_catalog: tool_catalog,
+        tool_authorizer: JobSearch::ToolAuthorizer.new(
+          tool_catalog: tool_catalog,
+          approval_gate: JobSearch::StaticApprovalGate.new(approvals: [ [ :apply_job, approved ] ])
+        )
+      )
+      apply = JobSearch::Step.new(
+        name: :apply,
+        action: JobSearch::AgentAction.new(
+          tool: :apply_job,
+          arguments: { job_id: JobSearch::ObservationReference.new(step_name: :search), candidate_id: 7 }
+        ),
+        dependencies: [ :search ]
+      )
+
+      approving_executor.execute(plan: JobSearch::Plan.new(steps: [ search_step, apply ]), state: state)
+
+      expect(state.status).to eq(:completed)
     end
   end
 end
