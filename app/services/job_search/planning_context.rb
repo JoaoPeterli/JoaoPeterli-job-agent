@@ -5,7 +5,8 @@ module JobSearch
                 :previous_error,
                 :history,
                 :lessons,
-                :inputs
+                :inputs,
+                :reflections
 
     # history: rejeições anteriores à última tentativa, em ordem.
     # A última fica em previous_error (seção de reparo do prompt), então
@@ -15,14 +16,19 @@ module JobSearch
     #
     # inputs: AgentInput recebidos de outros agentes (o planner usa só o
     # nome e a descrição).
+    #
+    # reflections: laço ReAct. O que as iterações anteriores deste run
+    # buscaram e acharam, e a orientação do Reflector para a próxima.
     def initialize(
       objective:,
       attempt: 1,
       previous_error: nil,
       history: [],
       lessons: [],
-      inputs: []
+      inputs: [],
+      reflections: []
     )
+      @reflections = reflections.freeze
       @inputs = inputs.freeze
       @objective = objective
       @attempt = attempt

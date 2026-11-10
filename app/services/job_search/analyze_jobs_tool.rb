@@ -18,9 +18,10 @@ module JobSearch
     SENIORITY_POINTS = 20
     UNSTATED_SENIORITY_POINTS = 10
     WORKPLACE_POINTS = 20
-    # Abaixo do timeout da ferramenta (15 s, Container): se o LLM demorar,
-    # vale a régua, em vez de o timeout da ferramenta derrubar o run.
-    EVALUATION_TIMEOUT_SECONDS = 10
+    # Abaixo do timeout da ferramenta (25 s, Container) somado ao da
+    # indexação (4 s): se o LLM demorar, vale a régua, em vez de o timeout
+    # da ferramenta derrubar o run. Inclui a recuperação da memória (RAG).
+    EVALUATION_TIMEOUT_SECONDS = 18
     # Indexar as vagas (embeddings, RAG) é um extra: prazo curto e, se
     # falhar, a análise segue sem índice.
     INDEXING_TIMEOUT_SECONDS = 4

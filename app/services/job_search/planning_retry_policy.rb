@@ -11,7 +11,7 @@ module JobSearch
     # não repetir erros que já foram corrigidos antes.
     #
     # lessons: lições de execuções anteriores, iguais em todas as tentativas.
-    def call(objective:, memory: ShortTermMemory.new, lessons: [], inputs: [])
+    def call(objective:, memory: ShortTermMemory.new, lessons: [], inputs: [], reflections: [])
       attempt = 0
       previous_error = nil
       history = []
@@ -25,7 +25,8 @@ module JobSearch
           previous_error: previous_error,
           history: history.dup,
           lessons: lessons,
-          inputs: inputs
+          inputs: inputs,
+          reflections: reflections
         )
 
         yield(context)

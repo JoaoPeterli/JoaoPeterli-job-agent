@@ -124,3 +124,25 @@ RSpec.describe "Plans and inputs from other agents" do
     end
   end
 end
+
+RSpec.describe JobSearch::Plan, "#namespaced" do
+  it "prefixes step names, dependencies and references, keeping input references" do
+    ref = ->(name) { JobSearch::ObservationReference.new(step_name: name) }
+    plan = described_class.new(
+      inputs: [ :jobs_in ],
+      steps: [
+        JobSearch::Step.new(name: :search, action: JobSearch::AgentAction.new(tool: :search_jobs, arguments: { technology: "Ruby", remote: true })),
+        JobSearch::Step.new(name: :analyze, dependencies: [ :search ],
+                            action: JobSearch::AgentAction.new(tool: :analyze_jobs, arguments: { jobs: ref.(:search), profile: ref.(:jobs_in) }))
+      ]
+    )
+
+    renamed = plan.namespaced("i2_")
+
+    expect(renamed.steps.map(&:name)).to eq(%i[i2_search i2_analyze])
+    expect(renamed.steps.last.dependencies).to eq([ :i2_search ])
+    expect(renamed.steps.last.action.arguments[:jobs].step_name).to eq(:i2_search)
+    expect(renamed.steps.last.action.arguments[:profile].step_name).to eq(:jobs_in)
+    expect(renamed.steps.first.action.arguments).to eq(technology: "Ruby", remote: true)
+  end
+end

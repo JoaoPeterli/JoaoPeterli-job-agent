@@ -37,5 +37,14 @@ RSpec.describe JobSearch::ToolFactory do
       expect(tool.instance_variable_get(:@indexer)).to be_a(JobSearch::JobIndex)
       expect(tool.instance_variable_get(:@evaluator).instance_variable_get(:@memory)).to be_a(JobSearch::PreferenceMemory)
     end
+
+    it "gives the reflector (ReAct) only to the single agent, when enabled" do
+      allow(Rails.configuration.x).to receive(:react_enabled).and_return(true)
+      allow(OpenAI::Client).to receive(:new).and_return(double("OpenAI::Client"))
+      container = JobSearch::Container.new
+
+      expect(container.agent(objective: "x").instance_variable_get(:@reflector)).to be_a(JobSearch::Reflector)
+      expect(container.agent(objective: "x", profile: JobSearch::AgentProfiles::RESEARCHER).instance_variable_get(:@reflector)).to be_nil
+    end
   end
 end

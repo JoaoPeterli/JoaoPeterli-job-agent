@@ -2,7 +2,7 @@ require "securerandom"
 
 module JobSearch
   class AgentState
-    attr_reader :objective, :run_id, :status, :actions, :step_states, :memory, :inputs
+    attr_reader :objective, :run_id, :status, :actions, :step_states, :memory, :inputs, :iterations
 
     # inputs: AgentInput recebidos de outros agentes, por nome.
     def initialize(
@@ -19,6 +19,14 @@ module JobSearch
       @status = :running
       @actions = []
       @step_states = {}
+      @iterations = []
+    end
+
+    # Laço ReAct: o que cada iteração buscou, achou e decidiu.
+    def record_iteration(observation, reflection)
+      @iterations << observation.to_h.merge(
+        decision: reflection.decision, reason: reflection.reason, guidance: reflection.guidance, decided_by: reflection.by
+      )
     end
 
     def add_action(action)

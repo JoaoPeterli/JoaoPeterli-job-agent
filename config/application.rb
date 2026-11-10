@@ -41,6 +41,10 @@ module JobAgent
     # semântica, "vagas parecidas" e memória de preferências por similaridade.
     config.x.rag_enabled = ENV.fetch("RAG_ENABLED", "true") == "true"
 
+    # Laço ReAct no agente único: observa o resultado e busca de novo (até 3
+    # iterações) quando veio pouca coisa ou coisa fraca.
+    config.x.react_enabled = ENV.fetch("REACT_ENABLED", "true") == "true"
+
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Aplicação web (Hotwire) + jobs. Era api_only até o front ser criado.

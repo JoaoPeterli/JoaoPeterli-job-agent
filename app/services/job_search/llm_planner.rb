@@ -9,6 +9,7 @@ module JobSearch
     MAX_HISTORY_TOKENS = 400
     MAX_LESSONS_TOKENS = 300
     MAX_INPUTS_TOKENS = 300
+    MAX_REFLECTIONS_TOKENS = 400
 
     DEFAULT_ROLE = "You are an execution planner.".freeze
 
@@ -147,6 +148,12 @@ module JobSearch
           max_tokens: MAX_LESSONS_TOKENS
         ),
         PromptSection.new(
+          name: :reflections,
+          content: reflections_instructions(context),
+          required: false,
+          max_tokens: MAX_REFLECTIONS_TOKENS
+        ),
+        PromptSection.new(
           name: :history,
           content: history_instructions(context),
           required: false,
@@ -219,6 +226,18 @@ module JobSearch
         Plans for similar objectives were rejected in previous runs for these reasons. Avoid them:
         #{untrusted_list(context.lessons, source: 'previous_runs')}
       LESSONS
+    end
+
+    # Laço ReAct: o resultado das iterações anteriores e a orientação do
+    # Reflector (saída de LLM: não confiável, vai delimitada).
+    def reflections_instructions(context)
+      return "" if context.reflections.empty?
+
+      <<~REFLECTIONS
+        This run already executed earlier plans. What they found, and a reviewer's guidance for the next plan:
+        #{untrusted_list(context.reflections, source: 'agent_reflection')}
+        Create a NEW plan that follows the guidance. Do not repeat a search with the same arguments.
+      REFLECTIONS
     end
 
     def history_instructions(context)

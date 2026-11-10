@@ -163,6 +163,22 @@ RSpec.describe "Runs UI", type: :request do
       expect(response.body.scan('class="score__by"').size).to eq(1)
     end
 
+    it "shows the agent reasoning (ReAct iterations)" do
+      run = create_run(status: "completed", result: { "iterations" => [
+        { "iteration" => 1, "searches" => [ { "technology" => "Ruby on Rails sênior", "remote" => true } ], "jobs_found" => 1,
+          "strong_matches" => 0, "decision" => "search_again", "decided_by" => "llm", "reason" => "Só uma vaga.",
+          "guidance" => "Search <b>Ruby</b> remote" },
+        { "iteration" => 2, "searches" => [ { "technology" => "Ruby", "remote" => true } ], "jobs_found" => 9,
+          "strong_matches" => 5, "decision" => "finish", "decided_by" => "rule", "reason" => "5 vagas fortes." }
+      ] })
+
+      get run_path(run), headers: auth
+
+      body = response.body
+      expect(body).to include("Raciocínio do agente", "Ruby on Rails sênior", "Buscar de novo", "decidido pela IA",
+                              "Search &lt;b&gt;Ruby&lt;/b&gt; remote", "9 vagas", "Terminar", "regra")
+    end
+
     it "lists the team agents in delegation order" do
       run = create_run(status: "completed", mode: "supervisor", result: { "agents" => [
         { "delegation" => "ruby", "run_id" => "r1" }, { "delegation" => "rails", "run_id" => "r2" },

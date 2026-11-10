@@ -10,7 +10,8 @@ module JobSearch
   class JobEvaluator
     Evaluation = Data.define(:score, :reason)
 
-    MAX_JOBS = 15
+    # 12 vagas e motivo curto: a saída (tokens gerados) é o que pesa no tempo.
+    MAX_JOBS = 12
     MAX_REASON_LENGTH = 200
     MAX_FIELD_LENGTH = 120
 
@@ -46,7 +47,7 @@ module JobSearch
       Judge from the title, tags, location and work mode only. Related technologies count
       (e.g. "Ruby on Rails" matches "Rails"; "AI Engineer" matches LLM/RAG/Agents experience).
       For each job return its id, the score and a short reason in Brazilian Portuguese
-      (one sentence, max 160 characters) explaining the fit or the main gap.
+      (one sentence, max 120 characters) explaining the fit or the main gap.
     RUBRIC
 
     # memory: PreferenceMemory (RAG). Sem ela, usa profile[:preferences]

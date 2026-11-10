@@ -768,3 +768,25 @@ fieldset.field > legend { margin-bottom: 0.5rem; }
 .similar-link .icon { width: 0.75rem; height: 0.75rem; }
 .similar-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .similar-reference { font-size: 1rem; font-weight: 600; margin-top: 0.25rem; }
+
+/* ---------- Raciocínio (ReAct) ---------- */
+
+.react { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+.react__item { display: flex; gap: 0.75rem; }
+.react__index {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+.react__body { display: grid; gap: 0.375rem; min-width: 0; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); flex: 1; }
+.react__item:last-child .react__body { border-bottom: 0; padding-bottom: 0; }
+.react__decision { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.react__guidance { display: flex; gap: 0.375rem; font-size: 0.8125rem; color: var(--muted-foreground); }
+.react__guidance .icon { margin-top: 0.125rem; color: var(--primary); }

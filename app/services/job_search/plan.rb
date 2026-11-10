@@ -16,6 +16,25 @@ module JobSearch
       validate_observation_references!
     end
 
+    # Mesmo plano com os nomes dos passos prefixados (laço ReAct: cada
+    # iteração roda no mesmo AgentState, e os nomes não podem colidir).
+    # Referências e dependências a passos do plano acompanham; referências a
+    # inputs de outros agentes ficam como estão.
+    def namespaced(prefix)
+      rename = ->(name) { steps.any? { |step| step.name == name } ? :"#{prefix}#{name}" : name }
+
+      Plan.new(
+        inputs: @inputs,
+        steps: steps.map do |step|
+          Step.new(
+            name: rename.call(step.name),
+            dependencies: step.dependencies.map(&rename),
+            action: AgentAction.new(tool: step.action.tool, arguments: rename_references(step.action.arguments, rename))
+          )
+        end
+      )
+    end
+
     def ready_steps(completed_steps:)
       steps.select do |step|
         !completed_steps.include?(step.name) &&
@@ -24,6 +43,15 @@ module JobSearch
     end
 
     private
+
+    def rename_references(value, rename)
+      case value
+      when ObservationReference then ObservationReference.new(step_name: rename.call(value.step_name))
+      when Hash then value.transform_values { |nested| rename_references(nested, rename) }
+      when Array then value.map { |nested| rename_references(nested, rename) }
+      else value
+      end
+    end
 
     def validate_unique_names!
       names = steps.map(&:name)

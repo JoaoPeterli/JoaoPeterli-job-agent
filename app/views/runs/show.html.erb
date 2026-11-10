@@ -65,6 +65,42 @@
     <%= render "shared/kpi", label: "Ferramentas", value: format_count(@run.metrics["tool_calls"]), icon_name: "wrench" %>
   </div>
 
+  <% if @run.result["iterations"].present? %>
+    <section class="card">
+      <div class="card__header">
+        <h2 class="card__title">Raciocínio do agente <span class="count"><%= @run.result["iterations"].size %></span></h2>
+        <p class="card__description">Laço ReAct: a cada iteração o agente busca, observa o resultado e decide se termina ou busca de novo.</p>
+      </div>
+      <ol class="react">
+        <% @run.result["iterations"].each do |step| %>
+          <li class="react__item">
+            <span class="react__index"><%= step["iteration"] %></span>
+            <div class="react__body">
+              <p class="react__action">
+                <% if step["searches"].present? %>
+                  Buscou <%= safe_join(step["searches"].map { |search| tag.strong(search["technology"]) + (search["remote"].to_s == "true" ? " (remoto)" : "") }, ", ") %>
+                  → <%= pluralize(step["jobs_found"], "vaga", plural: "vagas") %>, <%= step["strong_matches"] %> com nota ≥ 70
+                <% else %>
+                  Não executou um novo plano
+                <% end %>
+              </p>
+              <p class="react__decision">
+                <span class="badge <%= step["decision"] == "finish" ? "badge--success" : "badge--info" %>">
+                  <%= step["decision"] == "finish" ? "Terminar" : "Buscar de novo" %>
+                </span>
+                <span class="muted"><%= step["decided_by"] == "llm" ? "decidido pela IA" : "regra" %></span>
+                <%= step["reason"] %>
+              </p>
+              <% if step["guidance"].present? %>
+                <p class="react__guidance"><%= icon("sparkles") %>Próximo passo: <%= step["guidance"] %></p>
+              <% end %>
+            </div>
+          </li>
+        <% end %>
+      </ol>
+    </section>
+  <% end %>
+
   <section class="card">
     <div class="card__header">
       <h2 class="card__title" id="vagas">Vagas <span class="count"><%= @jobs.size %></span></h2>

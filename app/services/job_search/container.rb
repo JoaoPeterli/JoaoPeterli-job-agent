@@ -27,6 +27,10 @@ module JobSearch
     MAX_EVALUATION_TOKENS = 12_000
     MAX_EVALUATION_COST_USD = 0.25
 
+    # Laço ReAct (Reflector): orçamento próprio por run, para no máximo
+    # 2 reflexões por LLM (a 3ª iteração termina por regra).
+    MAX_REFLECTION_TOKENS = 8_000
+
     # llm_client: permite trocar o LLM (ex.: cliente roteirizado nos testes
     # de integração) mantendo todo o resto da montagem real.
     #
@@ -70,7 +74,8 @@ module JobSearch
         planning_retry_policy: planning_retry_policy,
         tracer: tracer,
         memory_store: memory_store,
-        memory_retriever: memory_retriever
+        memory_retriever: memory_retriever,
+        reflector: (reflector(tracer) if profile == AgentProfiles::GENERALIST)
       )
     end
 
@@ -179,15 +184,15 @@ module JobSearch
       ExecutionBudget.new(
         max_steps: 10,
         max_tool_calls: 20,
-        max_execution_seconds: 30
+        max_execution_seconds: 45
       )
     end
 
     def timeout_policy
-      # 15 s: a primeira busca de vagas baixa ~20 feeds (em paralelo, cada
-      # um com timeouts de 3 s + 5 s; medido: ~7 s); depois vem do cache.
+      # 25 s: a busca baixa ~20 feeds (medido: ~7 s a frio) e a análise
+      # indexa (até 4 s) e chama o LLM avaliador (até 18 s; medido: ~9-10 s).
       @timeout_policy ||= TimeoutPolicy.new(
-        timeout_seconds: 15
+        timeout_seconds: 25
       )
     end
 
@@ -309,6 +314,33 @@ module JobSearch
       return unless Rails.configuration.x.rag_enabled && @llm_client.nil?
 
       @job_index ||= JobIndex.new(embedder: EmbeddingClient.new(event_logger: @event_logger))
+    end
+
+    # Laço ReAct, só no agente único: no pipeline e no supervisor quem
+    # coordena é outro mecanismo. Desligado por configuração (REACT_ENABLED;
+    # sempre nos testes) e com llm_client injetado (roteiros fixos).
+    def reflector(tracer)
+      return unless Rails.configuration.x.react_enabled && @llm_client.nil?
+
+      Reflector.new(
+        llm_client: MeteredLlmClient.new(
+          client: reflection_llm_client,
+          tracer: tracer,
+          pricing_table: pricing_table,
+          budget: LlmBudget.new(max_total_tokens: MAX_REFLECTION_TOKENS, max_cost_usd: MAX_EVALUATION_COST_USD),
+          model: LLM_MODEL
+        )
+      )
+    end
+
+    def reflection_llm_client
+      @reflection_llm_client ||= OpenAiLlmClient.new(
+        client: openai_client,
+        model: LLM_MODEL,
+        output_schema: Reflector::SCHEMA,
+        schema_name: "job_search_reflection",
+        max_output_tokens: 600
+      )
     end
 
     def evaluation_llm_client

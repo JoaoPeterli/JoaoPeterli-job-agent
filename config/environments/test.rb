@@ -27,6 +27,7 @@ Rails.application.configure do
   # ...nem chamam o LLM avaliador de vagas (specs próprios usam um LLM falso).
   config.x.llm_job_evaluation = false
   config.x.rag_enabled = false
+  config.x.react_enabled = false
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable

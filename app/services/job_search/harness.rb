@@ -151,7 +151,7 @@ module JobSearch
       case run.mode
       when "agent"
         state = container.agent(objective: run.objective).run(run_id: run.id)
-        { status: state.status.to_s, result: { output: AgentOutput.from(state) } }
+        { status: state.status.to_s, result: { output: AgentOutput.from(state), iterations: state.iterations.presence }.compact }
       else
         team = run.mode == "pipeline" ? container.pipeline : container.supervisor
         result = team.run(objective: run.objective, run_id: run.id)

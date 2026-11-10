@@ -23,8 +23,10 @@ module JobSearch
       audit_trail: NullAuditTrail.new,
       name: PersistentMemoryStore::DEFAULT_AGENT_NAME,
       inputs: [],
-      parent_run_id: nil
+      parent_run_id: nil,
+      reflector: nil
     )
+      @reflector = reflector
       @audit_trail = audit_trail
       @name = name.to_s
       @inputs = inputs
@@ -66,19 +68,11 @@ module JobSearch
       lessons = retrieve_lessons(state)
       span.set(:lessons, lessons.size)
 
-      plan = @planning_retry_policy.call(
-        objective: objective,
-        memory: state.memory,
-        lessons: lessons,
-        inputs: inputs
-      ) do |context|
-        plan_attempt(context)
+      if @reflector
+        run_react_loop(state, lessons)
+      else
+        @plan_executor.execute(plan: plan_for(state, lessons), state: state)
       end
-
-      @plan_executor.execute(
-        plan: plan,
-        state: state
-      )
 
       state
     rescue StandardError => failure
@@ -88,6 +82,98 @@ module JobSearch
       persist_memory(state)
       audit_run_finished(state, failure)
       span.set(:run_status, state.status.to_s)
+    end
+
+    def plan_for(state, lessons, reflections = [])
+      @planning_retry_policy.call(
+        objective: objective,
+        memory: state.memory,
+        lessons: lessons,
+        inputs: inputs,
+        reflections: reflections
+      ) do |context|
+        plan_attempt(context)
+      end
+    end
+
+    # Laço ReAct: planeja e executa (agir), resume o resultado (observar) e
+    # o Reflector decide (pensar) se termina ou busca de novo, com uma
+    # orientação para o próximo plano. A 1ª iteração é o run normal; uma
+    # falha numa iteração seguinte não derruba o run: fica o que já foi
+    # achado. Cancelamento e prazo (RunInterrupted) sempre interrompem.
+    def run_react_loop(state, lessons)
+      history = []
+      tried = []
+
+      (1..@reflector.max_iterations).each do |iteration|
+        plan = plan_for(state, lessons, history.map { |past| reflection_note(past) })
+        plan = plan.namespaced("i#{iteration}_") if iteration > 1
+        searches = searches_in(plan)
+
+        if iteration > 1 && (searches - tried).empty?
+          record_stop(state, iteration, "O novo plano repetia uma busca já feita.")
+          break
+        end
+        tried |= searches
+
+        execute_iteration(plan, state, iteration)
+        observation = IterationObservation.build(iteration: iteration, plan: plan, state: state)
+        reflection = reflect(observation, history.map(&:first))
+        state.record_iteration(observation, reflection)
+        audit_reflection(state, observation, reflection)
+        break if reflection.finish?
+
+        history << [ observation, reflection ]
+      rescue RunInterrupted
+        raise
+      rescue StandardError => error
+        raise if iteration == 1
+
+        state.complete!
+        record_stop(state, iteration, "Iteração #{iteration} falhou (#{error.class.name.demodulize}); mantido o resultado anterior.")
+        break
+      end
+    end
+
+    def execute_iteration(plan, state, iteration)
+      @tracer.span("agent.iteration", iteration: iteration, steps: plan.steps.size) do
+        @plan_executor.execute(plan: plan, state: state)
+      end
+    end
+
+    def reflect(observation, history)
+      @tracer.span("agent.reflect", iteration: observation.iteration) do |span|
+        @reflector.reflect(objective: objective, observation: observation, history: history).tap do |reflection|
+          span.set(:decision, reflection.decision)
+          span.set(:decided_by, reflection.by)
+        end
+      end
+    rescue ReflectionError, PlanningError => error # PlanningError: falha do LLM ou orçamento
+      Reflection.finish("Reflexão indisponível (#{error.class.name.demodulize}); mantido o resultado.")
+    end
+
+    def reflection_note((observation, reflection))
+      "#{observation.summary} Reviewer guidance: #{reflection.guidance}"
+    end
+
+    def searches_in(plan)
+      plan.steps.select { |step| step.action.tool == :search_jobs }
+          .map { |step| step.action.arguments.slice(:technology, :remote).transform_values { |value| value.to_s.downcase.strip } }
+    end
+
+    def record_stop(state, iteration, reason)
+      empty = IterationObservation.new(iteration: iteration, searches: [], jobs_found: 0, strong_matches: 0, top_jobs: [])
+      state.record_iteration(empty, Reflection.finish(reason))
+    end
+
+    def audit_reflection(state, observation, reflection)
+      @audit_trail.record(
+        run_id: state.run_id,
+        event: "agent.reflection",
+        outcome: reflection.finish? ? "completed" : "info",
+        details: { iteration: observation.iteration, decision: reflection.decision, decided_by: reflection.by,
+                   jobs_found: observation.jobs_found, strong_matches: observation.strong_matches }
+      )
     end
 
     # Fail closed: sem registro de início, o run não começa.
