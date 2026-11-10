@@ -23,6 +23,11 @@ module JobAgent
     #
     # Horários exibidos na interface. O banco continua em UTC.
     config.time_zone = "America/Sao_Paulo"
+
+    # Fontes de vagas da ferramenta search_jobs (JobSearch::JobSources).
+    # Ex.: JOB_SOURCES=remote_ok,github_br
+    config.x.job_sources = ENV.fetch("JOB_SOURCES", "remote_ok,arbeitnow,we_work_remotely,github_br")
+                              .split(",").map(&:strip).reject(&:empty?)
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Aplicação web (Hotwire) + jobs. Era api_only até o front ser criado.

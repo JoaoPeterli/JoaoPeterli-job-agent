@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss">
+  <channel>
+    <title>We Work Remotely: Remote jobs in design, programming, marketing and more</title>
+    <link>https://weworkremotely.com/remote-jobs.rss</link>
+    <description>We Work Remotely: Remote jobs in design, programming, marketing and more</description>
+    <language>en-US</language>
+    <ttl>60</ttl>
+    <item>
+      <title>OpenTable: Global Hotel Partnerships Manager (East Coast based)</title>
+      <region>USA Only</region>
+      <country></country>
+      <state></state>
+      <skills>Data Analysis, Salesforce, Contract Negotiation, Relationship Building, and Data Mapping</skills>
+      <category>Management and Finance</category>
+      <type>Full-Time</type>
+      <description>&lt;p&gt;trimmed&lt;/p&gt;</description>
+      <pubDate>Tue, 10 Nov 2026 17:00:38 +0000</pubDate>
+      <expires_at>Thu, 10 Dec 2026 17:00:25 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/opentable-global-hotel-partnerships-manager-east-coast-based</guid>
+      <link>https://weworkremotely.com/remote-jobs/opentable-global-hotel-partnerships-manager-east-coast-based</link>
+    </item>
+    <item>
+      <title>EdgeQ Technologies Private Limited: AI Data Quality Analyst</title>
+      <region>USA Only</region>
+      <country></country>
+      <state></state>
+      <skills>Data Analysis, Data Visualization, Python, SQL, Machine Learning, Data Preprocessing, Numpy, Data Cleaning, Data Labeling, and Data Annotation</skills>
+      <category>Full-Stack Programming</category>
+      <type>Full-Time</type>
+      <description>&lt;p&gt;trimmed&lt;/p&gt;</description>
+      <pubDate>Tue, 10 Nov 2026 17:00:36 +0000</pubDate>
+      <expires_at>Thu, 10 Dec 2026 17:00:25 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/edgeq-technologies-private-limited-ai-data-quality-analyst</guid>
+      <link>https://weworkremotely.com/remote-jobs/edgeq-technologies-private-limited-ai-data-quality-analyst</link>
+    </item>
+    <item>
+      <title>DataVisor: Senior Account Executive - Payment</title>
+      <region>USA Only</region>
+      <country></country>
+      <state></state>
+      <skills>Strategic Thinking, Salesforce, and Contract Negotiation</skills>
+      <category>Sales and Marketing</category>
+      <type>Full-Time</type>
+      <description>&lt;p&gt;trimmed&lt;/p&gt;</description>
+      <pubDate>Tue, 10 Nov 2026 17:00:35 +0000</pubDate>
+      <expires_at>Thu, 10 Dec 2026 17:00:25 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/datavisor-senior-account-executive-payment</guid>
+      <link>https://weworkremotely.com/remote-jobs/datavisor-senior-account-executive-payment</link>
+    </item>
+  </channel>
+</rss>

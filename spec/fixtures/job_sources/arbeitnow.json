@@ -1,0 +1,72 @@
+{
+ "data": [
+  {
+   "slug": "werkstudent-product-management-orthodontics-breckerfeld-202505",
+   "company_name": "GC Orthodontics Europe GmbH",
+   "title": "Werkstudent (m/f/d) Product Management Orthodontics",
+   "description": "<p>trimmed</p>",
+   "remote": false,
+   "url": "https://www.arbeitnow.com/jobs/companies/gc-orthodontics-europe-gmbh/werkstudent-product-management-orthodontics-breckerfeld-202505",
+   "tags": [
+    "Product Management"
+   ],
+   "job_types": [
+    "Werkstudent",
+    "working student",
+    "hilfstätigkeit / student"
+   ],
+   "location": "Breckerfeld",
+   "created_at": 1794344436
+  },
+  {
+   "slug": "baustellenkoordinator-arbeitsvorbereiter-in-der-kampfmittelraumung-tiefbau-hamburg-112135",
+   "company_name": "TAUBER Unternehmensgruppe",
+   "title": "Baustellenkoordinator / Arbeitsvorbereiter (m/w/d) in der Kampfmittelräumung / Tiefbau",
+   "description": "<p>trimmed</p>",
+   "remote": false,
+   "url": "https://www.arbeitnow.com/jobs/companies/tauber-unternehmensgruppe/baustellenkoordinator-arbeitsvorbereiter-in-der-kampfmittelraumung-tiefbau-hamburg-112135",
+   "tags": [
+    "Project Management"
+   ],
+   "job_types": [
+    "Unbefristeter arbeitsvertrag",
+    "berufserfahren"
+   ],
+   "location": "Hamburg",
+   "created_at": 1794344436
+  },
+  {
+   "slug": "projektleitung-disposition-in-der-kampfmittelraumung-hamburg-106696",
+   "company_name": "TAUBER Unternehmensgruppe",
+   "title": "Projektleitung / Disposition (m/w/d) in der Kampfmittelräumung",
+   "description": "<p>trimmed</p>",
+   "remote": false,
+   "url": "https://www.arbeitnow.com/jobs/companies/tauber-unternehmensgruppe/projektleitung-disposition-in-der-kampfmittelraumung-hamburg-106696",
+   "tags": [
+    "Project Management"
+   ],
+   "job_types": [
+    "Unbefristeter arbeitsvertrag",
+    "teamleitung"
+   ],
+   "location": "Hamburg",
+   "created_at": 1794344436
+  }
+ ],
+ "links": {
+  "first": "https://www.arbeitnow.com/api/job-board-api?page=1",
+  "last": null,
+  "prev": null,
+  "next": "https://www.arbeitnow.com/api/job-board-api?page=2"
+ },
+ "meta": {
+  "current_page": 1,
+  "current_page_url": "https://www.arbeitnow.com/api/job-board-api?page=1",
+  "from": 1,
+  "path": "https://www.arbeitnow.com/api/job-board-api",
+  "per_page": 300,
+  "to": 300,
+  "terms": "This is a free public API for jobs, please do not abuse. I would appreciate linking back to the site. By using the API, you agree to the terms of service present on Arbeitnow.com",
+  "info": "Jobs are updated every hour and order by the `created_at` timestamp. Use `?page=` to paginate. Read more information here: https://www.arbeitnow.com/blog/job-board-api"
+ }
+}

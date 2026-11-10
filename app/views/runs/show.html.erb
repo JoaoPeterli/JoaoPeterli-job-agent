@@ -47,7 +47,12 @@
   <section class="card">
     <div class="card__header">
       <h2 class="card__title">Vagas <span class="count"><%= @jobs.size %></span></h2>
-      <p class="card__description">Ordenadas pela aderência ao seu perfil.</p>
+      <p class="card__description">
+        Ordenadas pela aderência ao seu perfil. Clique na vaga para abrir o anúncio original.
+        <% if (sources = JobSearch::JobSources.attributions).any? %>
+          Fontes: <%= safe_join(sources.map { |source| link_to(source[:name], source[:url], target: "_blank", rel: "noopener", class: "text-link") }, ", ") %>.
+        <% end %>
+      </p>
     </div>
 
     <% if @jobs.empty? %>
@@ -58,16 +63,23 @@
       <div class="table-container">
         <table class="table">
           <thead>
-            <tr><th scope="col">Vaga</th><th scope="col" class="hide-sm">Empresa</th><th scope="col" class="hide-sm">Modalidade</th><th scope="col">Aderência</th></tr>
+            <tr>
+              <th scope="col">Vaga</th>
+              <th scope="col" class="hide-sm">Fonte</th>
+              <th scope="col" class="hide-sm">Modalidade</th>
+              <th scope="col" class="hide-sm">Publicada</th>
+              <th scope="col">Aderência</th>
+            </tr>
           </thead>
           <tbody>
             <% @jobs.each do |job| %>
               <tr>
-                <td class="table__primary">
-                  <%= job["title"] %>
-                  <span class="show-sm table__meta"><%= job["company"].presence || "—" %> · <%= job["remote"] ? "Remota" : "Presencial" %></span>
+                <td class="table__primary table__primary--wrap">
+                  <%= job_title_link(job) %>
+                  <span class="table__meta"><%= [ job["company"], job["location"] ].compact_blank.join(" · ").presence || "—" %></span>
+                  <span class="show-sm table__meta"><%= [ job["source"], job["remote"] ? "Remota" : "Presencial", job_published(job) ].compact_blank.join(" · ") %></span>
                 </td>
-                <td class="hide-sm"><span class="with-icon"><%= icon("building") %><%= job["company"].presence || "—" %></span></td>
+                <td class="hide-sm muted nowrap"><%= job["source"].presence || "—" %></td>
                 <td class="hide-sm">
                   <% if job["remote"] %>
                     <span class="badge badge--info"><%= icon("globe") %>Remota</span>
@@ -75,6 +87,7 @@
                     <span class="badge badge--neutral">Presencial</span>
                   <% end %>
                 </td>
+                <td class="hide-sm muted nowrap"><%= job_published(job) || "—" %></td>
                 <td>
                   <% if job.key?("score") %>
                     <span class="score">

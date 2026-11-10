@@ -81,6 +81,34 @@ module RunsHelper
     value.nil? ? "—" : number_with_delimiter(value, delimiter: ".")
   end
 
+  # Link para o anúncio original. A URL vem de fonte externa: só http(s)
+  # passa (de novo aqui, mesmo já validada na coleta).
+  def job_title_link(job)
+    url = JobSearch::JobListing.safe_url(job["url"])
+    return tag.span(job["title"]) unless url
+
+    link_to(url, target: "_blank", rel: "noopener", class: "row-link") do
+      safe_join([ job["title"], icon("external-link", class_name: "row-link__icon") ])
+    end
+  end
+
+  def job_published(job)
+    time = Time.zone.parse(job["published_at"].to_s) if job["published_at"].present?
+    time && "há #{short_distance(time)}"
+  rescue ArgumentError
+    nil
+  end
+
+  def short_distance(time)
+    seconds = [ Time.current - time, 0 ].max
+
+    if seconds < 1.hour then "#{(seconds / 60).floor.clamp(1, 59)} min"
+    elsif seconds < 1.day then "#{(seconds / 3600).floor} h"
+    elsif seconds < 2.days then "1 dia"
+    else "#{(seconds / 86_400).floor} dias"
+    end
+  end
+
   def score_width(score)
     "width: #{score.to_i.clamp(0, 100)}%"
   end

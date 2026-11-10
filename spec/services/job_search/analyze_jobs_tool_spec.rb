@@ -37,5 +37,17 @@ RSpec.describe JobSearch::AnalyzeJobsTool do
         ]
       )
     end
+
+    it "finds skills in the tags too, ignoring case, as whole words" do
+      profile = { skills: %w[Ruby Rails AWS], remote: false }
+      jobs = [
+        { title: "Backend engineer (ruby)", tags: [ "rails", "Postgres" ], remote: true },
+        { title: "Rubyist wanted", tags: [ "awsome" ], remote: true }
+      ]
+
+      scores = described_class.new.call(jobs: jobs, profile: profile).map { |job| job[:score] }
+
+      expect(scores).to eq([ 40, 0 ])
+    end
   end
 end

@@ -1,0 +1,23 @@
+module JobSearch
+  # Fetcher sem rede para os specs das fontes: URL => corpo (ou erro).
+  class FakeFetcher
+    attr_reader :requests
+
+    def initialize(responses)
+      @responses = responses
+      @requests = []
+    end
+
+    def get(url, headers: {})
+      @requests << { url: url, headers: headers }
+      response = @responses.fetch(url) { raise JobSearch::JobSourceError, "unexpected URL #{url}" }
+      raise response if response.is_a?(Exception)
+
+      response
+    end
+
+    def self.fixture(name)
+      Rails.root.join("spec/fixtures/job_sources", name).read
+    end
+  end
+end
