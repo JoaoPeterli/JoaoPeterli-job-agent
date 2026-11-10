@@ -1,28 +1,99 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
-    <title><%= content_for(:title) || "job_agent" %></title>
+    <title><%= [ content_for(:title), "Job Agent" ].compact.join(" · ") %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%# Aplica o tema antes de pintar a página (evita o flash claro→escuro). Chave igual à do theme_controller.js. %>
+    <script>
+      try {
+        var theme = localStorage.getItem("job-agent-theme") || "light";
+        var dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+      } catch (e) {}
+    </script>
     <%= turbo_refreshes_with method: :morph, scroll: :preserve %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
 
   <body>
-    <header class="topbar">
-      <%= link_to root_path, class: "brand" do %>
-        <span class="brand__mark" aria-hidden="true">◆</span> job_agent
-      <% end %>
-      <span class="topbar__hint">agente de busca de vagas</span>
-    </header>
+    <div class="app" data-controller="sidebar" data-action="keydown.esc@window->sidebar#close">
+      <aside class="sidebar" id="sidebar" data-sidebar-target="panel" aria-label="Navegação principal">
+        <div class="sidebar__header">
+          <%= link_to root_path, class: "brand" do %>
+            <span class="brand__mark"><%= icon("briefcase") %></span>
+            <span class="brand__text">
+              <span class="brand__name">Job Agent</span>
+              <span class="brand__tagline">Agente de vagas</span>
+            </span>
+          <% end %>
+          <button type="button" class="icon-button sidebar__close" data-action="sidebar#close" aria-label="Fechar menu">
+            <%= icon("x") %>
+          </button>
+        </div>
 
-    <main class="page">
-      <% if notice.present? %><p class="flash flash--notice" role="status"><%= notice %></p><% end %>
-      <% if alert.present? %><p class="flash flash--alert" role="alert"><%= alert %></p><% end %>
-      <%= yield %>
-    </main>
+        <nav class="sidebar__nav">
+          <p class="sidebar__label">Agente</p>
+          <%= link_to root_path, class: "nav-item", aria: { current: (current_page?(root_path) || current_page?(runs_path)) ? "page" : nil } do %>
+            <%= icon("layout-dashboard") %><span>Painel</span>
+          <% end %>
+          <%= link_to new_run_path, class: "nav-item", aria: { current: current_page?(new_run_path) ? "page" : nil } do %>
+            <%= icon("sparkles") %><span>Nova busca</span>
+          <% end %>
+        </nav>
+
+        <div class="sidebar__footer">
+          <div class="theme-switch" data-controller="theme" role="radiogroup" aria-label="Tema">
+            <% { "light" => [ "sun", "Claro" ], "dark" => [ "moon", "Escuro" ], "system" => [ "monitor", "Sistema" ] }.each do |value, (name, label)| %>
+              <button type="button" class="theme-switch__option" role="radio" aria-checked="false" title="Tema <%= label.downcase %>"
+                      data-theme-target="option" data-theme-value-param="<%= value %>" data-value="<%= value %>" data-action="theme#choose">
+                <%= icon(name, label: "Tema #{label.downcase}") %>
+              </button>
+            <% end %>
+          </div>
+
+          <div class="user">
+            <span class="user__avatar" aria-hidden="true"><%= current_user_name.first.to_s.upcase %></span>
+            <span class="user__text">
+              <span class="user__name"><%= current_user_name %></span>
+              <span class="user__role">Acesso pessoal</span>
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="sidebar-overlay" data-action="click->sidebar#close" aria-hidden="true"></div>
+
+      <div class="main">
+        <header class="topbar">
+          <button type="button" class="icon-button topbar__menu" data-action="sidebar#open"
+                  aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false" data-sidebar-target="trigger">
+            <%= icon("menu") %>
+          </button>
+          <span class="topbar__title"><%= content_for(:title) || "Painel" %></span>
+        </header>
+
+        <main class="content">
+          <%= yield %>
+        </main>
+      </div>
+    </div>
+
+    <div class="toaster" aria-live="polite">
+      <% { notice: "success", alert: "danger" }.each do |key, tone| %>
+        <% if flash[key].present? %>
+          <div class="toast toast--<%= tone %>" role="<%= key == :alert ? 'alert' : 'status' %>" data-controller="toast">
+            <%= icon(key == :alert ? "circle-alert" : "circle-check", class_name: "toast__icon") %>
+            <p class="toast__message"><%= flash[key] %></p>
+            <button type="button" class="icon-button toast__close" data-action="toast#dismiss" aria-label="Fechar aviso">
+              <%= icon("x") %>
+            </button>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
   </body>
 </html>

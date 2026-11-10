@@ -3,8 +3,13 @@ class ApplicationController < ActionController::Base
   # aberta. Sem credenciais configuradas, ela se recusa a funcionar
   # (fail closed) em vez de liberar acesso.
   before_action :authenticate!
+  helper_method :current_user_name
 
   private
+
+  def current_user_name
+    ENV["JOB_AGENT_WEB_USER"].to_s
+  end
 
   def authenticate!
     user = ENV["JOB_AGENT_WEB_USER"].to_s

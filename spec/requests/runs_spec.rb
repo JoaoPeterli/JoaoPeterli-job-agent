@@ -45,14 +45,15 @@ RSpec.describe "Runs UI", type: :request do
   end
 
   describe "GET /" do
-    it "shows the form and the recent runs" do
-      create_run(objective: "Vagas de Elixir", status: "completed", metrics: { "llm_calls" => 2, "duration_ms" => 1500 })
+    it "shows the dashboard with the indicators and the recent runs" do
+      create_run(objective: "Vagas de Elixir", status: "completed",
+                 metrics: { "llm_calls" => 2, "duration_ms" => 1500, "total_tokens" => 1200 })
 
       get root_path, headers: auth
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("Nova busca", "Vagas de Elixir", "Concluído", "1.5 s")
-      expect(response.body).to include('name="run[idempotency_key]"')
+      expect(response.body).to include("Painel", "Vagas de Elixir", "Concluído", "1.5 s", "1.200", "100%")
+      expect(response.body).to include(new_run_path)
     end
 
     it "keeps polling only while some run is active" do
@@ -63,6 +64,33 @@ RSpec.describe "Runs UI", type: :request do
       create_run(status: "running")
       get root_path, headers: auth
       expect(response.body).to include('data-refresh-active-value="true"')
+    end
+
+    it "filters the runs by status and ignores unknown filters" do
+      create_run(objective: "Vagas de Elixir", status: "completed")
+      create_run(objective: "Vagas de Go", status: "failed")
+
+      get runs_path(status: "failed"), headers: auth
+      expect(response.body).to include("Vagas de Go")
+      expect(response.body).not_to include("Vagas de Elixir")
+
+      get runs_path(status: "drop table"), headers: auth
+      expect(response.body).to include("Vagas de Go", "Vagas de Elixir")
+    end
+
+    it "invites the first search when there are no runs" do
+      get root_path, headers: auth
+
+      expect(response.body).to include("Nenhuma busca ainda")
+    end
+  end
+
+  describe "GET /runs/new" do
+    it "shows the form with a fresh idempotency key" do
+      get new_run_path, headers: auth
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Nova busca", "Supervisor", 'name="run[idempotency_key]"')
     end
   end
 
@@ -87,7 +115,7 @@ RSpec.describe "Runs UI", type: :request do
 
     it "rejects an empty objective, an oversized one and an unknown mode" do
       post runs_path, params: { run: { objective: "  ", mode: "agent" } }, headers: auth
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("Descreva o objetivo")
 
       post runs_path, params: { run: { objective: "x" * 2_001, mode: "agent" } }, headers: auth

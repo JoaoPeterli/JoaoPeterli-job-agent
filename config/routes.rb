@@ -3,7 +3,7 @@ Rails.application.routes.draw do
 
   root "runs#index"
 
-  resources :runs, only: %i[index create show] do
+  resources :runs, only: %i[index new create show] do
     post :cancel, on: :member
   end
 end

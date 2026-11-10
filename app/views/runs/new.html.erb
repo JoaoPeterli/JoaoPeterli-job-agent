@@ -1,0 +1,59 @@
+<% content_for :title, "Nova busca" %>
+
+<div class="page">
+  <%= render "shared/page_header", title: "Nova busca",
+             description: "Descreva a vaga que você procura. O agente planeja, chama as ferramentas e devolve as vagas ordenadas por aderência ao seu perfil." %>
+
+  <div class="split">
+    <section class="card">
+      <%= form_with scope: :run, url: runs_path, class: "form", data: { turbo: false } do |f| %>
+        <%= f.hidden_field :idempotency_key, value: @form[:idempotency_key] %>
+
+        <div class="field">
+          <%= f.label :objective, "Objetivo", class: "label" %>
+          <%= f.text_area :objective, value: @form[:objective], rows: 4, class: "input",
+                          maxlength: RunsController::MAX_OBJECTIVE_LENGTH, required: true,
+                          placeholder: "Ex.: Vagas remotas de Ruby e Rails que combinem com meu perfil",
+                          aria: { describedby: "objective-hint" } %>
+          <p class="field__hint" id="objective-hint">Até <%= number_with_delimiter(RunsController::MAX_OBJECTIVE_LENGTH, delimiter: ".") %> caracteres. Tecnologia, senioridade e se precisa ser remota já bastam.</p>
+        </div>
+
+        <fieldset class="field">
+          <legend class="label">Modo de execução</legend>
+          <div class="choice-grid">
+            <% RunsHelper::MODE_LABELS.each do |mode, label| %>
+              <label class="choice">
+                <%= f.radio_button :mode, mode, checked: @form[:mode] == mode, class: "choice__input" %>
+                <span class="choice__body">
+                  <span class="choice__icon"><%= mode_icon(mode) %></span>
+                  <span class="choice__name"><%= label %></span>
+                  <span class="choice__desc"><%= RunsHelper::MODE_DESCRIPTIONS[mode] %></span>
+                </span>
+              </label>
+            <% end %>
+          </div>
+        </fieldset>
+
+        <div class="form__footer">
+          <%= link_to "Cancelar", runs_path, class: "button button--outline" %>
+          <%= f.button type: "submit", class: "button button--primary", data: { disable_with: "Enviando…" } do %>
+            <%= icon("sparkles") %> Buscar vagas
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+
+    <aside class="card card--muted how-it-works">
+      <h2 class="card__title">Como funciona</h2>
+      <ol class="steps">
+        <li><strong>Planejamento.</strong> Um LLM transforma o objetivo num plano de ferramentas, validado antes de rodar.</li>
+        <li><strong>Execução.</strong> As ferramentas rodam com limites de tempo, tentativas e orçamento de tokens.</li>
+        <li><strong>Auditoria.</strong> Cada decisão entra numa cadeia de hashes que denuncia qualquer adulteração.</li>
+      </ol>
+      <p class="callout">
+        <%= icon("coins") %>
+        <span>Cada busca chama a OpenAI e gasta tokens. Reenviar o mesmo formulário não cria um run novo.</span>
+      </p>
+    </aside>
+  </div>
+</div>

@@ -3,7 +3,12 @@ class RunsController < ApplicationController
   RECENT_RUNS = 20
 
   def index
-    @runs = AgentRun.order(created_at: :desc).limit(RECENT_RUNS)
+    @filter = AgentRun::FILTERS.key?(params[:status]) ? params[:status] : nil
+    @runs = AgentRun.recent.filtered(@filter).limit(RECENT_RUNS)
+    @stats = AgentRun.dashboard_stats
+  end
+
+  def new
     @form = default_form
   end
 
@@ -12,15 +17,14 @@ class RunsController < ApplicationController
     error = validation_error(@form)
 
     if error
-      @runs = AgentRun.order(created_at: :desc).limit(RECENT_RUNS)
       flash.now[:alert] = error
-      return render :index, status: :unprocessable_entity
+      return render :new, status: :unprocessable_content
     end
 
     run = harness.submit(objective: @form[:objective], mode: @form[:mode], idempotency_key: @form[:idempotency_key])
     redirect_to run_path(run)
   rescue ArgumentError => e
-    redirect_to runs_path, alert: e.message
+    redirect_to new_run_path, alert: e.message
   end
 
   def show

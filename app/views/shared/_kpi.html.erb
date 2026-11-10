@@ -1,0 +1,8 @@
+<div class="card kpi">
+  <div class="kpi__head">
+    <span class="kpi__label"><%= label %></span>
+    <%= icon(icon_name, class_name: "kpi__icon") %>
+  </div>
+  <p class="kpi__value"><%= value %></p>
+  <% if local_assigns[:hint].present? %><p class="kpi__hint"><%= hint %></p><% end %>
+</div>
