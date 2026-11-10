@@ -104,6 +104,17 @@ RSpec.describe JobSearch::OpenAiLlmClient do
     end
   end
 
+  describe "schema name" do
+    it "sends a custom schema name (e.g. the supervisor's delegation schema)" do
+      allow(responses_api).to receive(:create).and_return(fake_response)
+
+      build_client(schema_name: "job_search_delegation").complete(prompt: "p")
+
+      expect(responses_api).to have_received(:create)
+        .with(hash_including(text: hash_including(format: hash_including(name: "job_search_delegation"))))
+    end
+  end
+
   describe "#generate" do
     it "normalizes the provider response including token usage" do
       usage = double(

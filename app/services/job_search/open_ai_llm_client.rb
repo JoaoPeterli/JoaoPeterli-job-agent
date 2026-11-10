@@ -7,6 +7,7 @@ module JobSearch
       model:,
       output_schema:,
       max_output_tokens: nil,
+      schema_name: SCHEMA_NAME,
       response_contract: LlmResponseContract.new,
       schema_validator: StrictSchemaValidator.new
     )
@@ -16,6 +17,7 @@ module JobSearch
       @client = client
       @model = model
       @output_schema = output_schema
+      @schema_name = schema_name
       @max_output_tokens = max_output_tokens
       @response_contract = response_contract
     end
@@ -57,7 +59,7 @@ module JobSearch
         text: {
           format: {
             type: :json_schema,
-            name: SCHEMA_NAME,
+            name: @schema_name,
             strict: true,
             schema: @output_schema
           }

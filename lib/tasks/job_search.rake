@@ -79,3 +79,30 @@ namespace :job_search do
     )
   end
 end
+
+namespace :job_search do
+  desc 'Um supervisor (LLM) delega o objetivo aos especialistas. Uso: bin/rails "job_search:delegate[Vagas Ruby e Rails remotas]"'
+  task :delegate, [ :objective ] => :environment do |_task, args|
+    objective = args[:objective].to_s.strip
+    abort 'Informe o objetivo: bin/rails "job_search:delegate[Vagas Ruby e Rails remotas]"' if objective.empty?
+
+    logger = Logger.new($stderr, formatter: ->(_severity, _time, _progname, message) { "#{message}\n" })
+    event_logger = JobSearch::Observability::EventLogger.new(logger: logger)
+
+    begin
+      result = JobSearch::Container.new(event_logger: event_logger).supervisor.run(objective: objective)
+    rescue JobSearch::PipelineStageError => error
+      abort "Delegação #{error.stage} falhou (#{error.cause&.class&.name}). Auditoria: job_search:audit[#{error.pipeline_run_id}]"
+    rescue JobSearch::PlanningError => error
+      abort "Supervisor não conseguiu delegar: #{error.message}"
+    end
+
+    puts JSON.pretty_generate(
+      supervisor_run_id: result.run_id,
+      status: result.status,
+      agent_run_ids: result.agent_run_ids,
+      messages: result.messages.map(&:to_h),
+      output: result.output&.value
+    )
+  end
+end

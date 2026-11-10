@@ -94,10 +94,10 @@ RSpec.describe "Multi-agent pipeline (researcher -> analyst)" do
     expect(spans.map { |span| span["trace_id"] }.uniq).to eq([ result.run_id ])
     expect(tree(spans)).to eq([
       [ "pipeline.run",
-        [ "pipeline.stage", [ "agent.run",
+        [ "delegation", [ "agent.run",
           [ "planning.attempt", [ "llm.plan", [ "llm.call" ] ] ],
           [ "plan.execute", [ "step" ], [ "step" ] ] ] ],
-        [ "pipeline.stage", [ "agent.run",
+        [ "delegation", [ "agent.run",
           [ "planning.attempt", [ "llm.plan", [ "llm.call" ] ] ],
           [ "plan.execute", [ "step" ], [ "step" ] ] ] ] ]
     ])
@@ -155,7 +155,7 @@ RSpec.describe "Multi-agent pipeline (researcher -> analyst)" do
       expect(error.stage).to eq("analyst")
       expect(error.cause).to be_a(JobSearch::LlmRefusalError)
       expect(error.messages.last).to have_attributes(kind: :failure, from: "analyst")
-      expect(error.messages.last.payload).to eq(error_class: "JobSearch::LlmRefusalError")
+      expect(error.messages.last.payload).to include(error_class: "JobSearch::LlmRefusalError", delegation: "analyst")
       expect(audit_trail.events(error.pipeline_run_id).last).to have_attributes(
         event: "pipeline.finished", outcome: "failed"
       )

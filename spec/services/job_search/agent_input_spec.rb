@@ -68,6 +68,14 @@ RSpec.describe JobSearch::AgentProfile do
     expect(input).to have_attributes(name: :jobs, value: [ { title: "A" } ])
   end
 
+  it "describes its public contract for a supervisor" do
+    expect(JobSearch::AgentProfiles::ANALYST.to_roster).to eq(<<~ROSTER.chomp)
+      - analyst: Scores job openings against the candidate profile. Needs the jobs found by researchers.
+        requires inputs: jobs
+        produces: ranked_jobs (jobs scored against the candidate profile)
+    ROSTER
+  end
+
   it "has disjoint tools for the specialists" do
     researcher = JobSearch::AgentProfiles::RESEARCHER.allowed_tools
     analyst = JobSearch::AgentProfiles::ANALYST.allowed_tools

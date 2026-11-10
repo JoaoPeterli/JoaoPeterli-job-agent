@@ -22,7 +22,8 @@ module JobSearch
       max_calls_per_tool: { search_jobs: 3 },
       output_name: :jobs,
       output_description: "job openings found by the research agent",
-      output_tool: :search_jobs
+      output_tool: :search_jobs,
+      description: "Searches job openings for one technology focus (remote or not). Give it a short search task."
     )
 
     ANALYST = AgentProfile.new(
@@ -34,8 +35,14 @@ module JobSearch
       max_calls_per_tool: { analyze_jobs: 1 },
       output_name: :ranked_jobs,
       output_description: "jobs scored against the candidate profile",
-      output_tool: :analyze_jobs
+      output_tool: :analyze_jobs,
+      description: "Scores job openings against the candidate profile. Needs the jobs found by researchers.",
+      required_inputs: %i[jobs]
     )
+
+    # Especialistas que um supervisor pode chamar (o GENERALIST não entra:
+    # ele já faz tudo sozinho e anularia o menor privilégio do time).
+    TEAM = [ RESEARCHER, ANALYST ].freeze
 
     ALL = [ GENERALIST, RESEARCHER, ANALYST ].to_h { |profile| [ profile.name, profile ] }.freeze
 

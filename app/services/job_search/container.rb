@@ -69,6 +69,25 @@ module JobSearch
       )
     end
 
+    # Supervisor: um LLM decide a quem delegar (Aula 42).
+    def supervisor(team: AgentProfiles::TEAM)
+      tracer = new_tracer
+
+      Supervisor.new(
+        delegation_planner: DelegationPlanner.new(
+          llm_client: metered_llm_client(tracer: tracer, profile: nil, team: team),
+          team: team,
+          tracer: tracer
+        ),
+        executor: DelegationExecutor.new(
+          agent_factory: self, profiles: team, tracer: tracer, audit_trail: audit_trail
+        ),
+        planning_retry_policy: planning_retry_policy,
+        tracer: tracer,
+        audit_trail: audit_trail
+      )
+    end
+
     # Cada PlanExecutor tem o próprio budget, compartilhado apenas com o
     # seu Executor: execuções diferentes não somam tempo nem chamadas.
     def plan_executor(
@@ -178,9 +197,10 @@ module JobSearch
       )
     end
 
-    def metered_llm_client(tracer:, profile:)
+    # profile: nil + team -> cliente do supervisor (schema de delegação).
+    def metered_llm_client(tracer:, profile:, team: nil)
       MeteredLlmClient.new(
-        client: llm_client(profile),
+        client: profile ? llm_client(profile) : supervisor_llm_client(team),
         tracer: tracer,
         pricing_table: pricing_table,
         budget: LlmBudget.new(
@@ -206,6 +226,19 @@ module JobSearch
         model: LLM_MODEL,
         output_schema: plan_output_schema(profile),
         max_output_tokens: 2_000
+      )
+    end
+
+    def supervisor_llm_client(team)
+      return @llm_client if @llm_client
+
+      @llm_clients ||= {}
+      @llm_clients["supervisor:#{team.map(&:name).join(',')}"] ||= OpenAiLlmClient.new(
+        client: openai_client,
+        model: LLM_MODEL,
+        output_schema: DelegationOutputSchema.new(team: team).to_h,
+        schema_name: "job_search_delegation",
+        max_output_tokens: 1_000
       )
     end
 
