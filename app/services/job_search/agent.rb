@@ -1,3 +1,5 @@
+require "digest"
+
 module JobSearch
   class Agent
     attr_reader :objective
@@ -14,8 +16,10 @@ module JobSearch
       memory_store: nil,
       memory_retriever: nil,
       event_logger: Observability::EventLogger.new,
-      tracer: nil
+      tracer: nil,
+      audit_trail: NullAuditTrail.new
     )
+      @audit_trail = audit_trail
       @objective = objective
       @planner = planner
       @plan_executor = plan_executor
@@ -44,6 +48,8 @@ module JobSearch
     private
 
     def run_traced(state, span)
+      audit_run_started(state)
+
       lessons = retrieve_lessons(state)
       span.set(:lessons, lessons.size)
 
@@ -61,12 +67,49 @@ module JobSearch
       )
 
       state
-    rescue StandardError
+    rescue StandardError => failure
       state.failed!
       raise
     ensure
       persist_memory(state)
+      audit_run_finished(state, failure)
       span.set(:run_status, state.status.to_s)
+    end
+
+    # Fail closed: sem registro de início, o run não começa.
+    # O objetivo não vai para a auditoria, só o digest: o texto fica na
+    # memória do run (agent_memory_entries), com o mesmo run_id.
+    def audit_run_started(state)
+      @audit_trail.record(
+        run_id: state.run_id,
+        event: "run.started",
+        outcome: "info",
+        details: {
+          objective_sha256: Digest::SHA256.hexdigest(objective.to_s),
+          objective_chars: objective.to_s.length
+        }
+      )
+    end
+
+    # O fim do run é informativo: as decisões que importam (autorizações)
+    # já foram gravadas antes de agir. Uma falha aqui só vai para o log,
+    # para não esconder o erro original do run.
+    def audit_run_finished(state, failure)
+      details = { status: state.status.to_s }
+
+      if failure
+        details[:error_class] = failure.class.name
+        details[:signals] = failure.signals.map(&:to_s) if failure.respond_to?(:signals)
+      end
+
+      @audit_trail.record(
+        run_id: state.run_id,
+        event: "run.finished",
+        outcome: failure ? "failed" : "completed",
+        details: details
+      )
+    rescue StandardError => error
+      log_memory_failure("agent_audit.record_failed", state, error)
     end
 
     # O motivo da rejeição repete texto do LLM: vai higienizado e curto.

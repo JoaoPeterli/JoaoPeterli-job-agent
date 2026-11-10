@@ -111,4 +111,68 @@ RSpec.describe JobSearch::ToolAuthorizer do
         .to raise_error(JobSearch::ToolCallLimitExceeded, "Plan uses search_jobs 2 times (limit: 1)")
     end
   end
+
+  describe "audit trail" do
+    let(:audit_trail) { JobSearch::AuditTrail.new }
+
+    def audited(**options)
+      described_class.new(tool_catalog: tool_catalog, audit_trail: audit_trail, **options)
+    end
+
+    def audit_events
+      audit_trail.events("run-1").map { |event| [ event.event, event.outcome, event.details ] }
+    end
+
+    it "records an allowed action with its fingerprint, not its arguments" do
+      audited.authorize!(action(:search_jobs, technology: "Ruby"), run_id: "run-1")
+
+      expect(audit_events).to eq([
+        [ "tool.authorization", "allowed",
+          { "tool" => "search_jobs", "fingerprint" => fingerprint(:search_jobs, technology: "Ruby") } ]
+      ])
+    end
+
+    it "records a denied action with the reason" do
+      authorizer = audited(allowed_tools: [ :search_jobs ])
+
+      expect { authorizer.authorize!(action(:candidate_profile), run_id: "run-1") }
+        .to raise_error(JobSearch::ToolNotAuthorizedError)
+
+      expect(audit_events.first).to eq([
+        "tool.authorization", "denied",
+        { "tool" => "candidate_profile", "fingerprint" => fingerprint(:candidate_profile),
+          "error_class" => "JobSearch::ToolNotAuthorizedError", "reason" => "Tool not authorized: candidate_profile" }
+      ])
+    end
+
+    it "records a side-effect action that is missing approval" do
+      expect { audited.authorize!(action(:apply_job, job_id: 1), run_id: "run-1") }
+        .to raise_error(JobSearch::ApprovalRequiredError)
+
+      expect(audit_events.first.first(2)).to eq([ "tool.authorization", "denied" ])
+      expect(audit_events.first.last["error_class"]).to eq("JobSearch::ApprovalRequiredError")
+    end
+
+    it "records the plan decision" do
+      authorizer = audited(max_calls_per_tool: { search_jobs: 1 })
+      plan = JobSearch::Plan.new(steps: [ step(:a, :search_jobs), step(:b, :search_jobs) ])
+
+      expect { authorizer.authorize_plan!(plan, run_id: "run-1") }.to raise_error(JobSearch::ToolCallLimitExceeded)
+
+      expect(audit_events.first).to eq([
+        "plan.authorization", "denied",
+        { "tools" => %w[search_jobs search_jobs], "error_class" => "JobSearch::ToolCallLimitExceeded",
+          "reason" => "Plan uses search_jobs 2 times (limit: 1)" }
+      ])
+    end
+
+    it "does not run the action when the decision cannot be audited" do
+      failing_trail = instance_double(JobSearch::AuditTrail)
+      allow(failing_trail).to receive(:record).and_raise(ActiveRecord::ConnectionNotEstablished)
+      authorizer = described_class.new(tool_catalog: tool_catalog, audit_trail: failing_trail)
+
+      expect { authorizer.authorize!(action(:search_jobs), run_id: "run-1") }
+        .to raise_error(ActiveRecord::ConnectionNotEstablished)
+    end
+  end
 end

@@ -30,7 +30,7 @@ module JobSearch
       @execution_budget.start!
       @execution_budget.validate!(plan: plan)
       @tool_authorizer.start!
-      @tool_authorizer.authorize_plan!(plan)
+      @tool_authorizer.authorize_plan!(plan, run_id: state.run_id)
 
       state.memory.record(
         :plan_started,

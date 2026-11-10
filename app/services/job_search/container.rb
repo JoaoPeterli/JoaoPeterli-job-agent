@@ -46,7 +46,8 @@ module JobSearch
       Agent.new(
         objective: objective,
         planner: planner(tracer: tracer, client: metered_llm_client(tracer: tracer)),
-        plan_executor: plan_executor(tracer: tracer),
+        plan_executor: plan_executor(tracer: tracer, audit_trail: audit_trail),
+        audit_trail: audit_trail,
         planning_retry_policy: planning_retry_policy,
         tracer: tracer,
         memory_store: memory_store,
@@ -56,16 +57,22 @@ module JobSearch
 
     # Cada PlanExecutor tem o próprio budget, compartilhado apenas com o
     # seu Executor: execuções diferentes não somam tempo nem chamadas.
-    def plan_executor(tracer: Observability::NullTracer.new)
+    def plan_executor(tracer: Observability::NullTracer.new, audit_trail: NullAuditTrail.new)
       budget = execution_budget
 
       PlanExecutor.new(
         executor: executor(execution_budget: budget),
         execution_budget: budget,
         tool_catalog: tool_catalog,
-        tool_authorizer: tool_authorizer,
+        tool_authorizer: tool_authorizer(audit_trail: audit_trail),
         tracer: tracer
       )
+    end
+
+    # Trilha de auditoria persistente (uma instância por Container; cada
+    # run tem a própria cadeia, separada pelo run_id).
+    def audit_trail
+      @audit_trail ||= AuditTrail.new
     end
 
     private
@@ -81,11 +88,12 @@ module JobSearch
       )
     end
 
-    def tool_authorizer
+    def tool_authorizer(audit_trail:)
       ToolAuthorizer.new(
         tool_catalog: tool_catalog,
         allowed_tools: ALLOWED_TOOLS,
-        max_calls_per_tool: MAX_CALLS_PER_TOOL
+        max_calls_per_tool: MAX_CALLS_PER_TOOL,
+        audit_trail: audit_trail
       )
     end
 

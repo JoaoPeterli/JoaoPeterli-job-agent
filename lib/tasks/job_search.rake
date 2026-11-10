@@ -27,3 +27,30 @@ namespace :job_search do
     )
   end
 end
+
+namespace :job_search do
+  desc 'Mostra e verifica a trilha de auditoria de um run. Uso: bin/rails "job_search:audit[RUN_ID]"'
+  task :audit, [ :run_id ] => :environment do |_task, args|
+    run_id = args[:run_id].to_s.strip
+    abort 'Informe o run_id: bin/rails "job_search:audit[RUN_ID]"' if run_id.empty?
+
+    trail = JobSearch::AuditTrail.new
+    events = trail.events(run_id)
+    abort "Nenhum evento de auditoria para o run #{run_id}" if events.empty?
+
+    events.each do |event|
+      puts format(
+        "%<seq>3d  %<at>s  %<event>-20s %<outcome>-9s %<details>s",
+        seq: event.seq, at: event.created_at.iso8601(3), event: event.event,
+        outcome: event.outcome, details: event.details.to_json
+      )
+    end
+
+    result = trail.verify(run_id)
+    if result.valid?
+      puts "\nCadeia íntegra: #{result.events} eventos."
+    else
+      abort "\nCADEIA VIOLADA no evento #{result.broken_at_seq}: #{result.reason}"
+    end
+  end
+end
