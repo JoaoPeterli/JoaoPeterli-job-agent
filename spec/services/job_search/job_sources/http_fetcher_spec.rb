@@ -31,4 +31,17 @@ RSpec.describe JobSearch::JobSources::HttpFetcher do
     allow(Net::HTTP).to receive(:start).and_raise(Net::OpenTimeout)
     expect { fetcher.get("https://example.com/feed") }.to raise_error(JobSearch::JobSourceError, /unreachable/)
   end
+
+  it "posts JSON caching by the given key, and errors never show the URL path (where keys live)" do
+    allow(Net::HTTP).to receive(:start).and_return(http_response(Net::HTTPOK, "200", "{}"))
+
+    2.times { fetcher.post_json("https://example.com/api/s3cr3t", body: { q: "ruby" }, cache_key: "x/q=ruby") }
+
+    expect(Net::HTTP).to have_received(:start).once
+    expect(cache.exist?("job_sources/x/q=ruby")).to be(true)
+
+    allow(Net::HTTP).to receive(:start).and_return(http_response(Net::HTTPForbidden, "403", ""))
+    expect { fetcher.post_json("https://example.com/api/s3cr3t", body: {}, cache_key: "y") }
+      .to raise_error(JobSearch::JobSourceError) { |error| expect(error.message).not_to include("s3cr3t") }
+  end
 end

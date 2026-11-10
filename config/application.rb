@@ -26,9 +26,11 @@ module JobAgent
 
     # Fontes de vagas da ferramenta search_jobs (JobSearch::JobSources).
     # Ex.: JOB_SOURCES=remote_ok,github_br. O JSearch (LinkedIn, Indeed...)
-    # entra sozinho no padrão quando JSEARCH_API_KEY está definida.
-    default_job_sources = %w[remote_ok arbeitnow we_work_remotely github_br]
+    # e o Jooble entram sozinhos no padrão quando a chave de cada um existe.
+    # Empresas acompanhadas via Greenhouse/Lever/Ashby: config/job_companies.yml.
+    default_job_sources = %w[remote_ok arbeitnow we_work_remotely github_br greenhouse lever ashby jobicy himalayas]
     default_job_sources << "jsearch" if ENV["JSEARCH_API_KEY"].present?
+    default_job_sources << "jooble" if ENV["JOOBLE_API_KEY"].present?
     config.x.job_sources = ENV.fetch("JOB_SOURCES", default_job_sources.join(","))
                               .split(",").map(&:strip).reject(&:empty?)
     # config.eager_load_paths << Rails.root.join("extras")

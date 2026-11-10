@@ -8,6 +8,12 @@ module JobSearch
       "we_work_remotely" => "JobSearch::JobSources::WeWorkRemotely",
       "github_br" => "JobSearch::JobSources::GithubIssues",
       "jsearch" => "JobSearch::JobSources::Jsearch",
+      "greenhouse" => "JobSearch::JobSources::Greenhouse",
+      "lever" => "JobSearch::JobSources::Lever",
+      "ashby" => "JobSearch::JobSources::Ashby",
+      "jobicy" => "JobSearch::JobSources::Jobicy",
+      "himalayas" => "JobSearch::JobSources::Himalayas",
+      "jooble" => "JobSearch::JobSources::Jooble",
       "sample" => "JobSearch::JobSources::Sample"
     }.freeze
 

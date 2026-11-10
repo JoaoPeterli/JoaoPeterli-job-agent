@@ -16,6 +16,14 @@ module JobSearch
       response
     end
 
+    def post_json(url, body:, cache_key:, ttl: nil)
+      @requests << { url: url, body: body, cache_key: cache_key, ttl: ttl }
+      response = @responses.fetch(url) { raise JobSearch::JobSourceError, "unexpected URL" }
+      raise response if response.is_a?(Exception)
+
+      response
+    end
+
     def self.fixture(name)
       Rails.root.join("spec/fixtures/job_sources", name).read
     end

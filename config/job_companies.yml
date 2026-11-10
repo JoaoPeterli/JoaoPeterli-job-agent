@@ -1,0 +1,20 @@
+# Empresas acompanhadas direto no sistema de recrutamento (ATS) que cada uma
+# usa. Formato: slug_do_board: Nome exibido.
+#
+# Para descobrir o slug, abra a página de vagas da empresa:
+#   job-boards.greenhouse.io/<slug>  ·  jobs.lever.co/<slug>  ·  jobs.ashbyhq.com/<slug>
+# Empresa sem board (ou com slug errado) só gera um aviso no log.
+greenhouse:
+  quintoandar: QuintoAndar
+  stone: Stone
+  inter: Inter
+  gympass: Wellhub (Gympass)
+  ebanx: EBANX
+  vtex: VTEX
+  wildlifestudios: Wildlife Studios
+  rdstation: RD Station
+lever:
+  neon: Neon
+ashby:
+  nubank: Nubank
+  supabase: Supabase

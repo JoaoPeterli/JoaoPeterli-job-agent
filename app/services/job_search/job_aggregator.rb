@@ -8,9 +8,11 @@ module JobSearch
     # Issues do GitHub e alguns feeds mantêm anúncios antigos: vaga com mais
     # de MAX_AGE provavelmente já foi preenchida. Sem data, a vaga fica.
     MAX_AGE = 60.days
+    # Nenhuma fonte ocupa a lista sozinha (fontes grandes publicam muito).
+    MAX_PER_SOURCE = 8
     STOPWORDS = %w[on de da do e and the with com em para for developer dev desenvolvedor].freeze
 
-    def initialize(sources:, runner: ParallelRunner.new(max_parallel: 4),
+    def initialize(sources:, runner: ParallelRunner.new(max_parallel: 6),
                    event_logger: Observability::EventLogger.new, limit: DEFAULT_LIMIT)
       @sources = sources
       @runner = runner
@@ -26,6 +28,8 @@ module JobSearch
       outcomes.select(&:ok?).flat_map(&:value)
         .select { |job| matcher.call(job) && (!remote || job.remote) && fresh?(job) }
         .uniq(&:dedup_key)
+        .sort_by { |job| -(job.published_at&.to_i || 0) }
+        .group_by(&:source).flat_map { |_, jobs| jobs.first(MAX_PER_SOURCE) }
         .sort_by { |job| -(job.published_at&.to_i || 0) }
         .first(@limit)
     end

@@ -63,6 +63,17 @@ RSpec.describe JobSearch::JobAggregator do
     expect(titles).to eq([ "Ruby New", "Ruby Undated" ])
   end
 
+  it "caps each source so a big one does not fill the list alone" do
+    big = Array.new(10) { |i| job("Ruby #{i}", hours_ago: i + 1) }
+    small = JobSearch::JobListing.build(title: "Ruby Small", url: "https://example.com/s", source: "Outra",
+                                        published_at: 30.hours.ago)
+
+    jobs = aggregator(source_with(*big), source_with(small)).search(technology: "Ruby", remote: false)
+
+    expect(jobs.count { |j| j.source == "Teste" }).to eq(described_class::MAX_PER_SOURCE)
+    expect(jobs.map(&:title)).to include("Ruby Small")
+  end
+
   it "limits the number of jobs" do
     jobs = Array.new(5) { |i| job("Ruby #{i}") }
 

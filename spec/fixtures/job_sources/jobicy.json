@@ -1,0 +1,37 @@
+{
+ "apiVersion": "2.2.19",
+ "jobCount": 2,
+ "jobs": [
+  {
+   "id": 152795,
+   "url": "https://jobicy.com/jobs/152795-sr-software-engineer-ruby-on-rails",
+   "jobTitle": "Sr. Software Engineer, Ruby on Rails",
+   "companyName": "CentralReach",
+   "jobIndustry": [
+    "Software Engineering"
+   ],
+   "jobType": [
+    "Full-Time"
+   ],
+   "jobGeo": "USA",
+   "jobLevel": "Senior",
+   "pubDate": "2026-11-10T03:05:20+00:00"
+  },
+  {
+   "id": 160293,
+   "url": "https://jobicy.com/jobs/160293-developer-enterprise-tenants-and-policies",
+   "jobTitle": "Developer, Enterprise Tenants and Policies",
+   "companyName": "1Password",
+   "jobIndustry": [
+    "Software Engineering"
+   ],
+   "jobType": [
+    "Full-Time"
+   ],
+   "jobGeo": "Canada,  USA",
+   "jobLevel": "Senior",
+   "pubDate": "2026-11-09T16:29:16+00:00"
+  }
+ ],
+ "success": true
+}

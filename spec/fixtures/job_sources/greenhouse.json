@@ -1,0 +1,57 @@
+{
+ "jobs": [
+  {
+   "absolute_url": "https://job-boards.greenhouse.io/vtex/jobs/6234888004",
+   "location": {
+    "name": "Rio de Janeiro; São Paulo, Sao Paulo, Brazil"
+   },
+   "metadata": [
+    {
+     "id": 4382224004,
+     "name": "Management Level",
+     "value": "Junior",
+     "value_type": "single_select"
+    },
+    {
+     "id": 4568065004,
+     "name": "Job Emphasis",
+     "value": "Product Support",
+     "value_type": "single_select"
+    }
+   ],
+   "id": 6234888004,
+   "updated_at": "2026-10-27T15:20:16-04:00",
+   "title": "Analista Administrativo Jurídico (Exclusivo para pessoas com deficiência)",
+   "company_name": "VTEX",
+   "first_published": "2026-10-26T13:38:41-04:00"
+  },
+  {
+   "absolute_url": "https://job-boards.greenhouse.io/vtex/jobs/6100504004",
+   "location": {
+    "name": "Rio de Janeiro; São Paulo, Sao Paulo, Brazil"
+   },
+   "metadata": [
+    {
+     "id": 4382224004,
+     "name": "Management Level",
+     "value": "Junior",
+     "value_type": "single_select"
+    },
+    {
+     "id": 4568065004,
+     "name": "Job Emphasis",
+     "value": "Product Support",
+     "value_type": "single_select"
+    }
+   ],
+   "id": 6100504004,
+   "updated_at": "2026-10-28T13:46:24-04:00",
+   "title": "Analista Administrativo Tech (Exclusivo para pessoas com deficiência)",
+   "company_name": "VTEX",
+   "first_published": "2026-08-05T10:06:06-04:00"
+  }
+ ],
+ "meta": {
+  "total": 2
+ }
+}

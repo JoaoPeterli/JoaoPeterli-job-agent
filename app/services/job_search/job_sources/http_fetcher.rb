@@ -21,17 +21,35 @@ module JobSearch
       # A chave do cache é só a URL: credenciais vão nos headers, nunca na
       # URL, e não acabam no cache nem nos logs.
       def get(url, headers: {}, ttl: CACHE_TTL)
-        @cache.fetch("job_sources/#{url}", expires_in: ttl) { request(URI(url), headers) }
+        @cache.fetch("job_sources/#{url}", expires_in: ttl) do
+          request(URI(url)) { |uri| Net::HTTP::Get.new(uri, base_headers.merge(headers)) }
+        end
+      end
+
+      # POST com corpo JSON. Para APIs que põem a chave na URL (Jooble): o
+      # cache usa cache_key (sem a chave) e os erros citam só o host.
+      def post_json(url, body:, cache_key:, ttl: CACHE_TTL)
+        @cache.fetch("job_sources/#{cache_key}", expires_in: ttl) do
+          request(URI(url)) do |uri|
+            Net::HTTP::Post.new(uri, base_headers.merge("Content-Type" => "application/json")).tap do |post|
+              post.body = body.to_json
+            end
+          end
+        end
       end
 
       private
 
-      def request(uri, headers)
-        raise JobSourceError, "only https is allowed: #{uri}" unless uri.is_a?(URI::HTTPS)
+      def base_headers
+        { "User-Agent" => USER_AGENT, "Accept" => "application/json" }
+      end
+
+      def request(uri)
+        raise JobSourceError, "only https is allowed (#{uri.host})" unless uri.is_a?(URI::HTTPS)
 
         response = Net::HTTP.start(uri.host, uri.port, use_ssl: true,
                                    open_timeout: @open_timeout, read_timeout: @read_timeout) do |http|
-          http.request(Net::HTTP::Get.new(uri, { "User-Agent" => USER_AGENT }.merge(headers)))
+          http.request(yield(uri))
         end
 
         raise JobSourceError, "#{uri.host} answered HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)

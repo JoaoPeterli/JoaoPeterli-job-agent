@@ -178,10 +178,10 @@ module JobSearch
     end
 
     def timeout_policy
-      # 10 s: a primeira busca de vagas baixa os feeds das fontes (em
-      # paralelo, com timeouts próprios de 3 s + 5 s); depois vem do cache.
+      # 15 s: a primeira busca de vagas baixa ~20 feeds (em paralelo, cada
+      # um com timeouts de 3 s + 5 s; medido: ~7 s); depois vem do cache.
       @timeout_policy ||= TimeoutPolicy.new(
-        timeout_seconds: 10
+        timeout_seconds: 15
       )
     end
 
