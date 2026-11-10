@@ -1,32 +1,66 @@
 {
  "status": "OK",
- "request_id": "test-request",
- "data": [
-  {
-   "job_id": "abc123",
-   "job_title": "Desenvolvedor Ruby on Rails Sênior",
-   "employer_name": "Empresa Exemplo",
-   "job_publisher": "LinkedIn",
-   "job_employment_type": "FULLTIME",
-   "job_apply_link": "https://www.linkedin.com/jobs/view/123",
-   "job_is_remote": true,
-   "job_posted_at_timestamp": 1794240000,
-   "job_location": "São Paulo, SP",
-   "job_city": "São Paulo",
-   "job_country": "BR"
-  },
-  {
-   "job_id": "def456",
-   "job_title": "Backend Engineer (Ruby)",
-   "employer_name": "Outra Empresa",
-   "job_publisher": "Indeed",
-   "job_employment_type": "CONTRACTOR",
-   "job_apply_link": "",
-   "job_google_link": "https://www.google.com/search?q=job",
-   "job_is_remote": false,
-   "job_posted_at_datetime_utc": "2026-11-05T12:00:00.000Z",
-   "job_city": "Curitiba",
-   "job_country": "BR"
-  }
- ]
+ "request_id": "fixture",
+ "parameters": {
+  "query": "ruby developer",
+  "num_pages": 1,
+  "country": "br",
+  "language": "pt"
+ },
+ "data": {
+  "jobs": [
+   {
+    "job_id": "QjhkbVNTZ2s5T19wTmlNV0FBQUFBQT09OkVzd0JDb3dCUVVSRVlsZGxZVFJxVlRaWmNWazFablF0TWtZeFVUVmljWFUzV0Zwd1gxRmpPRkpqZW5adlRHOXpUV016UXkxcmRHbEhhMnhQUmt0NE56WmZTUzFRZWxnMmJERmxkVmQwVlhSeFUzTm9aSGc1VVdRd2VUSnRhekExYlhkblIyVkxSa2hsVG0xM1QyRmhWMVp3TTJwbVoxbG1VMU5NTFRWS1dWbzRkMGQ0ZVZObFRtVlNUaTExUms1dk5WVVNGMk5LWm5waGMySkxSbVV5YW1oMlkxQndORGRvYlZGTkdpSkJTRTR3UlRkSWNrbHBSM0kyTTB0b1lVUkZTWEUwUjFkWlprUnFMWGxWWldKMzozMDgzM2ZmNA",
+    "job_title": "Pessoa Desenvolvedora Ruby on Rails - Pleno",
+    "employer_name": "FCamara",
+    "job_publisher": "FCamara - Gupy",
+    "job_employment_type": "Tempo integral",
+    "job_apply_link": "https://fcamara.gupy.io/jobs/12829831?jobBoardSource=gupy_public_page",
+    "job_google_link": "https://www.google.com/search?q=jobs&gl=br&hl=pt&udm=8#vhid=vt%3D20/docid%3DB8dmSSgk9O_pNiMWAAAAAA%3D%3D&vssid=jobs-detail-viewer",
+    "job_is_remote": true,
+    "job_posted_at": "há 8 dias",
+    "job_posted_at_timestamp": null,
+    "job_posted_at_datetime_utc": null,
+    "job_location": "Qualquer lugar",
+    "job_city": null,
+    "job_state": null,
+    "job_country": null
+   },
+   {
+    "job_id": "QzJkVkdTNVdlWFhzOXRSMkFBQUFBQT09OkVzd0JDb3dCUVVSRVlsZGxXbGRvUTIxbVIxZG5kMEoyV2xSUWVEVjJRbWxaZURjeE1EZ3pPR0p1WWt0eVJXWlZVM0poZGs0MlltSTRaSEF6TFUxU2RFTjJUVEJ3Tmw5TWRXVnJjMWREUjB0bE5HUmpjbUZ0TmxOMFpqUlFTM2RpWTJOaVYyVkNlRlY1Umt0RVZYbzRSRkJEVVdKNFJsUktjVFI2U0ZCWlduVmpMWEJRUTJKVlFtcHhiVkZ6WDFOM1FVRVNGMk5LWm5waGMySkxSbVV5YW1oMlkxQndORGRvYlZGTkdpSkJTRTR3UlRkSVMyZHZSRWxNWkd4QlpsRk9XR3RhV2pKaFpYRmlMV2xWTjFKQjpmNGE5Y2YwMA",
+    "job_title": "Work From Home Ruby Junior Developer",
+    "employer_name": "BAIRESDEV",
+    "job_publisher": "Catho",
+    "job_employment_type": "Tempo integral",
+    "job_apply_link": "https://www.catho.com.br/vagas/work-from-home-ruby-junior-developer/38114783/",
+    "job_google_link": "https://www.google.com/search?q=jobs&gl=br&hl=pt&udm=8#vhid=vt%3D20/docid%3DC2dVGS5WeXXs9tR2AAAAAA%3D%3D&vssid=jobs-detail-viewer",
+    "job_is_remote": false,
+    "job_posted_at": null,
+    "job_posted_at_timestamp": null,
+    "job_posted_at_datetime_utc": null,
+    "job_location": "Goiás, GO   (+35)",
+    "job_city": "Goiás",
+    "job_state": "Goiás",
+    "job_country": "BR"
+   },
+   {
+    "job_id": "ODZMWUdNYzIzVU84MzhXTEFBQUFBQT09OkVzd0JDb3dCUVVSRVlsZGxXbVpmWmpGWGIwdFZObEJhZWt0NVJFOW1ZbXByU0dkb1ZFZG1abW8xY0V4dldUTkpZbDkxTkhGT1RFNXZjMWM0Tkc5QmMzWnRVSFZqYW1vdFgyUnlZek5YWVRobWExRTBRblIwUVMxMVduVmpPVVk1UnpKTVgwVllXbGhTZW1OZlYyMTNSMFZKYVhkdVkyZFZZMmwxWTJkQ1FrdHdOelJ1VW1KS1YyVTNlVjlOZGtsdVoyb1NGMk5LWm5waGMySkxSbVV5YW1oMlkxQndORGRvYlZGTkdpSkJTRTR3UlRkSFduaHhTVW8zWW5KM2FtaHBVbXh2Y1hob2VWQnVOMlpaYW5wbjphNWVkYzM4Yg",
+    "job_title": "Full-Stack Ruby + TypeScript Developer",
+    "employer_name": "BairesDev",
+    "job_publisher": "Trabajo.org",
+    "job_employment_type": "Tempo integral",
+    "job_apply_link": null,
+    "job_google_link": "https://www.google.com/search?q=jobs&gl=br&hl=pt&udm=8#vhid=vt%3D20/docid%3D86LYGMc23UO838WLAAAAAA%3D%3D&vssid=jobs-detail-viewer",
+    "job_is_remote": true,
+    "job_posted_at": null,
+    "job_posted_at_timestamp": 1794240000,
+    "job_posted_at_datetime_utc": null,
+    "job_location": "Qualquer lugar",
+    "job_city": null,
+    "job_state": null,
+    "job_country": null
+   }
+  ],
+  "cursor": "fixture-cursor"
+ }
 }
