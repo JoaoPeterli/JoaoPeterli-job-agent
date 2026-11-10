@@ -22,9 +22,13 @@ module JobSearch
       store:,
       max_lessons: 5,
       candidate_limit: 200,
-      min_similarity: 0.2
+      min_similarity: 0.2,
+      lesson_policy: LessonPolicy.new,
+      event_logger: Observability::EventLogger.new
     )
       @store = store
+      @lesson_policy = lesson_policy
+      @event_logger = event_logger
       @max_lessons = max_lessons
       @candidate_limit = candidate_limit
       @min_similarity = min_similarity
@@ -44,12 +48,27 @@ module JobSearch
         .map { |record| [ similarity(objective_terms, terms(record.objective)), record ] }
         .select { |score, _record| score >= @min_similarity }
         .sort_by { |score, record| [ -score, -record.created_at.to_f ] }
-        .map { |_score, record| record.content.sub(ATTEMPT_PREFIX, "") }
+        .map { |_score, record| [ record, record.content.sub(ATTEMPT_PREFIX, "") ] }
+        .select { |record, lesson| allowed_lesson?(record, lesson) }
+        .map(&:last)
         .uniq
         .first(@max_lessons)
     end
 
     private
+
+    # Lições fora da allowlist nunca voltam ao prompt (injeção armazenada).
+    def allowed_lesson?(record, lesson)
+      return true if @lesson_policy.allowed?(lesson)
+
+      @event_logger.warn(
+        event: "agent_memory.lesson_rejected",
+        run_id: record.run_id,
+        memory_entry_id: record.id
+      )
+
+      false
+    end
 
     def terms(text)
       text.to_s
