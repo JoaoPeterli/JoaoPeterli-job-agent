@@ -2,6 +2,15 @@
 
 **Português** · [English](README.en.md)
 
+<p>
+  <img alt="Ruby 3.3" src="https://img.shields.io/badge/Ruby-3.3.6-CC342D?logo=ruby&logoColor=white">
+  <img alt="Rails 8" src="https://img.shields.io/badge/Rails-8.0-D30001?logo=rubyonrails&logoColor=white">
+  <img alt="PostgreSQL 17 + pgvector" src="https://img.shields.io/badge/PostgreSQL-17%20%2B%20pgvector-4169E1?logo=postgresql&logoColor=white">
+  <img alt="Hotwire" src="https://img.shields.io/badge/Hotwire-Turbo%20%2B%20Stimulus-5CD8E5">
+  <img alt="OpenAI" src="https://img.shields.io/badge/LLM-OpenAI-412991?logo=openai&logoColor=white">
+  <img alt="RSpec" src="https://img.shields.io/badge/RSpec-958%20%E2%9C%93-success">
+</p>
+
 **Um agente de IA que procura vagas de emprego, avalia cada uma contra o seu perfil, aprende com o seu feedback e propõe candidaturas, que só são registradas depois da sua aprovação.**
 
 Projeto pessoal de estudo de **engenharia de agentes de IA em produção**, escrito em Ruby on Rails 8. O foco não é só "chamar um LLM", mas tudo o que torna um agente **confiável**: planejamento validado, ferramentas com limites, idempotência, auditoria à prova de adulteração, orçamento de tokens, avaliação de qualidade, memória, RAG, raciocínio em laço e aprovação humana para ações com efeito colateral.
@@ -23,6 +32,7 @@ Projeto pessoal de estudo de **engenharia de agentes de IA em produção**, escr
 - [Confiabilidade e custo](#confiabilidade-e-custo)
 - [Fontes de vagas](#fontes-de-vagas)
 - [Telas](#telas)
+- [Estrutura do projeto](#estrutura-do-projeto)
 - [Como rodar](#como-rodar)
 - [Testes e qualidade](#testes-e-qualidade)
 - [O que os testes com o LLM real ensinaram](#o-que-os-testes-com-o-llm-real-ensinaram)
@@ -154,6 +164,27 @@ Tema claro e escuro (<a href="docs/screenshots/run-dark.png">exemplo</a>), layou
 
 ---
 
+## Estrutura do projeto
+
+```text
+app/
+├── controllers/          runs, vagas, feedback, candidaturas, perfil
+├── models/               AgentRun, AgentAuditEvent, JobPosting (vetor), JobFeedback, JobApplication, CandidateProfile…
+├── jobs/job_search/      runs do agente, propostas e execução de candidaturas, embeddings, recuperação
+├── services/job_search/  o agente: planner, executor, ferramentas, RAG, Reflector, auditoria, orçamento, harness
+│   ├── job_sources/      um adaptador por fonte de vagas (mesma interface)
+│   └── evals/            datasets, graders e LLM juiz
+└── views/ · javascript/  Hotwire (Turbo Streams + Stimulus)
+config/
+├── job_companies.yml     empresas consultadas no Greenhouse / Lever / Ashby
+├── llm_pricing.yml       preço por modelo, para o custo em dólares
+└── recurring.yml         job recorrente que recupera runs travados
+evals/job_search.yml      casos de avaliação de qualidade
+spec/                     958 exemplos: unidade, segurança, concorrência, integração
+```
+
+---
+
 ## Como rodar
 
 **Requisitos:** Ruby 3.3.6, Docker (para o Postgres com pgvector) e uma chave da OpenAI.
@@ -183,6 +214,8 @@ Abra http://localhost:3000. Em desenvolvimento, os jobs rodam dentro do próprio
 | `OPENAI_API_KEY` | planner, avaliador, Reflector, embeddings, rascunhos | — |
 | `JOB_AGENT_WEB_USER` / `JOB_AGENT_WEB_PASSWORD` | acesso à interface (HTTP Basic, falha fechada) | — |
 | `DB_HOST` / `DB_PORT` / `DB_USERNAME` / `DB_PASSWORD` | Postgres | `localhost` / `5432` / `postgres` / `postgres` |
+| `DB_NAME` | nome do banco em produção | `job_agent_production` |
+| `JOB_CONCURRENCY` | processos do Solid Queue em produção | `1` |
 | `JSEARCH_API_KEY` | liga o JSearch (LinkedIn, Indeed, Gupy…) | desligado |
 | `JSEARCH_COUNTRY` | país das buscas no JSearch | `br` |
 | `JOOBLE_API_KEY` / `JOOBLE_LOCATION` | liga o Jooble | desligado / `Brazil` |
@@ -193,8 +226,11 @@ Abra http://localhost:3000. Em desenvolvimento, os jobs rodam dentro do próprio
 **Linha de comando**
 
 ```bash
-bin/rails "job_search:submit[Vagas remotas de Rails,agent]"   # envia um run (INLINE=1 roda na hora)
+bin/rails "job_search:run[Vagas Ruby remotas]"                 # roda o agente direto no terminal
+bin/rails "job_search:pipeline[Vagas Ruby remotas]"            # time pesquisador → analista
+bin/rails "job_search:submit[Vagas remotas de Rails,agent]"   # envia um run ao harness (INLINE=1 roda na hora)
 bin/rails "job_search:status[RUN_ID]"                          # estado de um run
+bin/rails "job_search:cancel[RUN_ID]"                          # pede o cancelamento de um run
 bin/rails "job_search:audit[RUN_ID]"                           # mostra e verifica a cadeia de auditoria
 bin/rails "job_search:delegate[Vagas Ruby e Rails remotas]"    # supervisor delegando a especialistas
 bin/rails "job_search:eval[agent]"                             # evals com o LLM real (JUDGE=1 liga o juiz)
