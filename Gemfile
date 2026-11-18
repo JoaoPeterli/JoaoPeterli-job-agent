@@ -31,7 +31,7 @@ gem "thruster", require: false
 gem "openai"
 
 # pgvector no ActiveRecord: tipo vector, has_neighbors e nearest_neighbors (RAG).
-gem "neighbor", "~> 0.6"
+gem "neighbor", "~> 1.2"
 gem "json", "~> 2.9"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
